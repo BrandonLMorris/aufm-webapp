@@ -20,7 +20,16 @@ class User(Base):
         self.permissions = permissions
 
     def __repr__(self):
-        return '<User {}>'.format(self.name)
+        return '<User {} {}>'.format(self.first_name, self.last_name)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'email': self.email,
+            'permissions': self.permissions
+        }
 
 
 class Protocol(Base):
@@ -38,4 +47,12 @@ class Protocol(Base):
 
     def __repr__(self):
         return '<Protocol {}:{}'.format(self.id, self.element_id)
+
+    def to_json(self):
+        return {
+            'id': self.id,
+            'element_id': self.element_id,
+            'property': self.property,
+            'value': self.value
+        }
 
