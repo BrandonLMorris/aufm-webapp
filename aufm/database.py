@@ -1,8 +1,16 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-engine = create_engine('sqlite:////tmp/test.db', convert_unicode=True)
+if 'AUFM_DB' in os.environ:
+    connection = os.environ['AUFM_DB']
+else:
+    connection = 'sqlite:////tmp/test.db'
+
+print('Connecting to database at {}'.format(connection))
+engine = create_engine(connection, convert_unicode=True)
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
