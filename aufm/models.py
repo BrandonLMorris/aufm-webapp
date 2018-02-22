@@ -37,11 +37,17 @@ class Building(Base):
     """Relation that defines building in the system"""
     __tablename__ = 'buildings'
     building_id = Column('building_id', Integer, primary_key=True)
-    name = Column(String(64))
+    name = Column(String(64), nullable=False)
 
     def __init__(self, building_id=None, name=None):
         self.building_id = building_id
         self.name = name
+
+    def to_json(self):
+        return {
+            'building_id': self.building_id,
+            'name': self.name
+        }
 
 
 class Part(Base):
@@ -57,6 +63,13 @@ class Part(Base):
         self.element_id = element_id
         self.building_id = building_id
 
+    def to_json(self):
+        return {
+            'part_id': self.element_id,
+            'element_id': self.element_id,
+            'building_id': self.building_id
+        }
+
 
 class Protocol(Base):
     """Relation that represents a protocol"""
@@ -64,20 +77,16 @@ class Protocol(Base):
     protocol_id = Column('protocol_id', Integer, primary_key=True)
     value = Column(String(1024))
 
-    def __init__(self, protocol_id=None, property=None, value=None):
+    def __init__(self, protocol_id=None, value=None):
         self.protocol_id = protocol_id
-        self.element_id = element_id
-        self.property = property
         self.value = value
 
     def __repr__(self):
-        return '<Protocol {}:{}'.format(self.protocol_id, self.element_id)
+        return '<Protocol {}:{}>'.format(self.protocol_id, self.value)
 
     def to_json(self):
         return {
             'protocol_id': self.protocol_id,
-            'element_id': self.element_id,
-            'property': self.property,
             'value': self.value
         }
 
