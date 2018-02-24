@@ -66,7 +66,7 @@ def get_or_add_parts():
     return jsonify(part.to_json())
 
 
-@app.route('/api/part/<int:element_id>/protocol')
+@app.route('/api/part/<int:element_id>/protocol', methods=['GET'])
 def get_all_protocols_for_part(element_id):
     part = Part.query.filter(Part.element_id==element_id).first()
     if part is None:
