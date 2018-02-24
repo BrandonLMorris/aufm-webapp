@@ -25,7 +25,7 @@ class User(Base):
 
     def to_json(self):
         return {
-            'id': self.id,
+            'user_id': self.user_id,
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
@@ -102,4 +102,10 @@ class PartProtocol(Base):
     def __init__(self, part_id=None, protocol_id=None):
         self.part_id = part_id
         self.protocol_id = protocol_id
+
+    def to_json(self):
+        return {
+            'part_id': self.part_id,
+            'protocol_id': self.protocol_id
+        }
 

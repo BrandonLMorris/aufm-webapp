@@ -4,7 +4,7 @@ from aufm.database import db_session
 from flask import jsonify, request
 
 
-@app.route('/api/users', methods=['GET', 'POST'])
+@app.route('/api/user', methods=['GET', 'POST'])
 def get_all_users():
     if request.method == 'GET':
         return jsonify([u.to_json() for u in User.query.all()])
@@ -12,7 +12,7 @@ def get_all_users():
 
 
 # TODO: Add PUT request to allow editing a part
-@app.route('/api/part/<int:element_id>', methods=['GET'])
+@app.route('/api/part/<int:element_id>', methods=['GET', 'PUT'])
 def part_info(element_id):
     if request.method == 'GET':
         part = Part.query.filter(Part.element_id==element_id).first()
@@ -38,7 +38,7 @@ def get_all_parts():
         building = (Building.query
                 .filter(Building.building_id==form['building_id']).first())
         if building is None:
-            return _error('building_id does not exist', 400)
+            return _error('building_id does not exist', 404)
     part = Part(
         element_id=form['element_id'],
         building_id=form.get('building_id')
@@ -61,8 +61,23 @@ def get_all_protocols_for_part(element_id):
     return jsonify({
         'part_id': part.part_id,
         'element_id': part.element_id,
-        'protocols': [proto.value for proto in joined]
+        'protocols': [proto.to_json() for proto in joined]
     })
+
+
+@app.route('/api/part/<int:element_id>/protocol/<int:protocol_id>',
+           methods=['POST'])
+def connect_part_protocol(element_id, protocol_id):
+    part = Part.query.filter(Part.element_id==element_id).first()
+    if part is None:
+        return _error('Part element_id does not exist', 404)
+    protocol = Protocol.query.filter(Protocol.protocol_id==protocol_id).first()
+    if protocol is None:
+        return _error('Protocol protocol_id does not exist', 404)
+    pp = PartProtocol(part_id=part.part_id, protocol_id=protocol_id)
+    db_session.add(pp)
+    db_session.commit()
+    return jsonify(pp.to_json())
 
 
 @app.route('/api/protocol', methods=['GET', 'POST'])
@@ -88,7 +103,7 @@ def get_protocol(protocol_id):
     return jsonify(p.to_json())
 
 
-@app.route('/api/building', methods=['GET', 'PUT'])
+@app.route('/api/building', methods=['GET', 'POST'])
 def get_all_buildings():
     if request.method == 'GET':
         buildings = Building.query.all()
@@ -107,7 +122,7 @@ def get_all_buildings():
 
 @app.route('/api/building/<int:building_id>', methods=['GET'])
 @app.route('/api/building/<name>', methods=['GET'])
-def get_parts_in_building(building_id=None, name=None):
+def get_building_by_identifier(building_id=None, name=None):
     # Validate that the building exists
     if building_id is not None:
         # Lookup by id
@@ -119,8 +134,24 @@ def get_parts_in_building(building_id=None, name=None):
                 .filter(Building.name==name).first())
     if building is None:
         return _error('The specified building does not exist', 404)
-    building_json = building.to_json()
+    return jsonify(building.to_json())
+
+
+@app.route('/api/building/<int:building_id>/part')
+@app.route('/api/building/<name>/part')
+def get_parts_in_building(building_id=None, name=None):
+    if building_id is not None:
+        # Lookup by id
+        building = (Building.query
+                .filter(Building.building_id==building_id).first())
+    else:
+        # Lookup by name
+        building = (Building.query
+                .filter(Building.name==name).first())
+    if building is None:
+        return _error('The specified building does not exist', 404)
     parts = Part.query.filter(Part.building_id==building.building_id).all()
+    building_json = building.to_json()
     building_json['parts'] = [p.to_json() for p in parts]
     return jsonify(building_json)
 
