@@ -20,6 +20,8 @@ class ViewsTest(unittest.TestCase):
         self.part2 = Part(element_id=5678)
         self.building1 = Building(name='Shelby')
         self.building2 = Building(name='Parker')
+        self.protocol1 = Protocol(value='Wash your hands')
+        self.protocol2 = Protocol(value='Turn off the lights')
 
     def setUp(self):
         app.testing = True
@@ -49,9 +51,10 @@ class ViewsTest(unittest.TestCase):
             self.assertEqual(resp[0], self.user2.to_json())
 
     def test_adding_a_user(self):
-        return # FIXME: Not yet implemented
-        resp = self.app.post('/api/user', content_type='application/json',
+        raw = self.app.post('/api/user', content_type='application/json',
                              data=json.dumps(self.user1.to_json()))
+        self.assertEqual(raw.status_code, 501)
+        return # FIXME: Not yet implemented
         resp = json.loads(resp.get_data())
         added = User.query.first()
         self.assertEqual(added.to_json(), resp)
@@ -294,6 +297,179 @@ class ViewsTest(unittest.TestCase):
         raw = self.app.get('/api/part/1000')
         self.assertEqual(404, raw.status_code)
 
+    def test_put_nonexistent_part_fails(self):
+        raw = self.app.put('/api/part/1000', content_type='application/json',
+                data=json.dumps({'part_id':1000,'element_id':10,'building_id':1}))
+        self.assertEqual(404, raw.status_code)
+
+    def test_put_part_nonexistent_building_fails(self):
+        db_session.add(self.part1)
+        db_session.commit()
+        to_put = self.part1.to_json()
+        to_put['building_id'] = 15
+        raw = self.app.put('/api/part/{}'.format(self.part1.element_id),
+                content_type='application/json', data=json.dumps(to_put))
+        resp = json.loads(raw.data)
+        self.assertEqual(404, raw.status_code)
+        self.assertTrue('building' in resp['Error'].lower())
+
+    def test_put_not_json_fails(self):
+        db_session.add(self.part1)
+        db_session.commit()
+        to_put = self.part1.to_json()
+        raw = self.app.put('/api/part/{}'.format(self.part1.element_id),
+                content_type='text/html', data='This is not json')
+        self.assertEqual(400, raw.status_code)
+
+    def test_put_part(self):
+        self.part1.building_id = None
+        db_session.add(self.part1)
+        db_session.commit()
+        to_put = self.part1.to_json()
+        to_put['element_id'] = 111
+        raw = self.app.put('/api/part/{}'.format(self.part1.element_id),
+                content_type='application/json', data=json.dumps(to_put))
+        changed = Part.query.first()
+        self.assertEqual(changed.to_json(), json.loads(raw.data))
+        self.assertEqual(111, changed.element_id)
+
+    def test_put_part_extra_keys_fails(self):
+        db_session.add(self.part1)
+        db_session.commit()
+        to_put = self.part1.to_json()
+        to_put['element_id'] = 111
+        to_put['not_an_attr'] = 'something'
+        raw = self.app.put('/api/part/{}'.format(self.part1.element_id),
+                content_type='application/json', data=json.dumps(to_put))
+        self.assertEqual(400, raw.status_code)
+
+    def test_delete_nonexistent_part_fails(self):
+        raw = self.app.delete('/api/part/1000')
+        self.assertEqual(404, raw.status_code)
+
+    def test_delete_part(self):
+        db_session.add(self.part1)
+        db_session.commit()
+        part_id = self.part1.part_id
+        raw = self.app.delete('/api/part/{}'.format(self.part1.element_id))
+        deleted = Part.query.first()
+        self.assertTrue(deleted is None)
+        self.assertEquals({'part_id':part_id}, json.loads(raw.data))
+
+    def test_delete_part_protocol(self):
+        db_session.add_all([self.part1, self.protocol1])
+        db_session.commit()
+        pp = PartProtocol(part_id=self.part1.part_id,
+                          protocol_id=self.protocol1.protocol_id)
+        db_session.add(pp)
+        db_session.commit()
+        raw = self.app.delete('/api/part/{}/protocol/{}'.format(
+            self.part1.element_id, self.protocol1.protocol_id))
+        deleted = (PartProtocol.query
+                .filter(PartProtocol.part_id==self.part1.part_id).first())
+        self.assertTrue(deleted is None)
+
+    def test_delete_part_protocol_no_connection_fails(self):
+        db_session.add_all([self.part1, self.protocol1])
+        db_session.commit()
+        raw = self.app.delete('/api/part/{}/protocol/{}'.format(
+            self.part1.element_id, self.protocol1.protocol_id))
+        self.assertEqual(raw.status_code, 404)
+
+    def test_get_nonexistent_protocol_by_id_fails(self):
+        raw = self.app.get('/api/protocol/999')
+        self.assertEqual(404, raw.status_code)
+
+    def test_put_protocol_not_json(self):
+        db_session.add(self.protocol1)
+        db_session.commit()
+        raw = self.app.put(
+            '/api/protocol/{}'.format(self.protocol1.protocol_id),
+            content_type='text/html', data='This is not JSON')
+        self.assertEqual(raw.status_code, 400)
+
+    def test_put_protocol_no_value_specified(self):
+        db_session.add(self.protocol1)
+        db_session.commit()
+        raw = self.app.put(
+            '/api/protocol/{}'.format(self.protocol1.protocol_id),
+            content_type='application/json', data='{}')
+        self.assertEqual(raw.status_code, 400)
+
+    def test_put_protocol_extra_keys_specified(self):
+        db_session.add(self.protocol1)
+        db_session.commit()
+        raw = self.app.put(
+            '/api/protocol/{}'.format(self.protocol1.protocol_id),
+            content_type='application/json',
+            data=json.dumps({'value':'something', 'else':'no good'}))
+        self.assertEqual(raw.status_code, 400)
+
+    def test_put_protocol(self):
+        db_session.add(self.protocol1)
+        db_session.commit()
+        raw = self.app.put(
+            '/api/protocol/{}'.format(self.protocol1.protocol_id),
+            content_type='application/json',
+            data=json.dumps({'value':'different'}))
+        changed = Protocol.query.filter(
+                Protocol.protocol_id==self.protocol1.protocol_id).first()
+        self.assertEqual(changed.value, 'different')
+
+    def test_delete_protocol(self):
+        db_session.add(self.protocol1)
+        db_session.commit()
+        pid = self.protocol1.protocol_id
+        self.app.delete('/api/protocol/{}'.format(pid))
+        deleted = Protocol.query.filter(Protocol.protocol_id==pid).first()
+        self.assertTrue(deleted is None)
+
+    def test_delete_building(self):
+        db_session.add(self.building1)
+        db_session.commit()
+        bid = self.building1.building_id
+        self.app.delete('/api/building/{}'.format(bid))
+        deleted = Building.query.filter(Building.building_id==bid).first()
+        self.assertTrue(deleted is None)
+
+    def test_put_building_not_json(self):
+        db_session.add(self.building1)
+        db_session.commit()
+        raw = self.app.put(
+                '/api/building/{}'.format(self.building1.building_id),
+                content_type='text/html', data='This is not json')
+        self.assertEqual(raw.status_code, 400)
+
+    def test_put_building_no_name(self):
+        db_session.add(self.building1)
+        db_session.commit()
+        raw = self.app.put(
+                '/api/building/{}'.format(self.building1.building_id),
+                content_type='application/json', data='{}')
+        self.assertEqual(raw.status_code, 400)
+
+    def test_put_building_extra_keys(self):
+        db_session.add(self.building1)
+        db_session.commit()
+        raw = self.app.put(
+                '/api/building/{}'.format(self.building1.building_id),
+                content_type='application/json',
+                data=json.dumps({'name':'Better Shelby', 'something': 'else'}))
+        self.assertEqual(raw.status_code, 400)
+
+    def test_put_building(self):
+        db_session.add(self.building1)
+        db_session.commit()
+        raw = self.app.put(
+                '/api/building/{}'.format(self.building1.building_id),
+                content_type='application/json',
+                data=json.dumps({'name': 'Super Shelby'}))
+        resp = json.loads(raw.data)
+        changed = (Building.query
+                .filter(Building.building_id==self.building1.building_id)
+                .first())
+        self.assertEqual(changed.name, 'Super Shelby')
+        self.assertEqual(resp, changed.to_json())
 
 
 if __name__ == '__main__':
