@@ -1,0 +1,77 @@
+.content-area {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding-top: 20px;
+}
+
+/* Property Table */
+.property-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.property-table {
+    min-width: 70%;
+    max-width: 90%;
+}
+.property-header {
+    border-bottom: 1px solid #d0d0d0;
+    font-weight: bold;
+}
+.property-row {
+    width: 100%;
+    min-width: 300px;
+    padding: 10px;
+    transition: 0.3s;
+}
+.property-row:not(.property-header):hover {
+    background-color: #ddd !important;
+    cursor: pointer;
+}
+.property-row:nth-child(even) {
+    background-color: #f2f2f2;
+}
+.property-key,
+.property-value {
+    width: 49%;
+    display: inline-block;
+}
+
+/* MATERIALIZE OVERRIDES */
+nav .brand-logo {
+    margin-left: 10px;
+}
+.col {
+    margin-left: unset !important;
+}
+.modal {
+    max-height: 80% !important;
+}
+
+/* label color */
+.input-field label {
+    color: #0D47A1 !important;
+}
+/* label focus color */
+.input-field input[type=text]:focus + label {
+    color: #0D47A1 !important;
+}
+/* Override input color scheme */
+input:not([type]):focus:not([readonly]), 
+input[type=text]:not(.browser-default):focus:not([readonly]), 
+input[type=password]:not(.browser-default):focus:not([readonly]), 
+input[type=email]:not(.browser-default):focus:not([readonly]), 
+input[type=url]:not(.browser-default):focus:not([readonly]), 
+input[type=time]:not(.browser-default):focus:not([readonly]), 
+input[type=date]:not(.browser-default):focus:not([readonly]), 
+input[type=datetime]:not(.browser-default):focus:not([readonly]), 
+input[type=datetime-local]:not(.browser-default):focus:not([readonly]), 
+input[type=tel]:not(.browser-default):focus:not([readonly]), 
+input[type=number]:not(.browser-default):focus:not([readonly]), 
+input[type=search]:not(.browser-default):focus:not([readonly]), 
+textarea.materialize-textarea:focus:not([readonly]) {
+    border-bottom: 1px solid #0D47A1 !important;
+    box-shadow: 0 1px 0 0 #0D47A1 !important;
+}
