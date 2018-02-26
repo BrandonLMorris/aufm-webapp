@@ -1,7 +1,7 @@
 import os
-from flask import Flask, render_template
 
-app = Flask(__name__)
+from aufm import app, database, render_template
+
 app.config.from_object(__name__)
 
 # Load default config and override config from an environment variable
@@ -12,7 +12,13 @@ app.config.update(dict(
     PASSWORD='default',
     TEMPLATES_AUTO_RELOAD=True
 ))
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+app.config.from_envvar('AUFM_SETTINGS', silent=True)
+
+database.init_db()
+
+@app.teardown_appcontext
+def remove_db_connection(exception=None):
+    database.db_session.remove()
 
 def connect_db():
     return None
