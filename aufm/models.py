@@ -65,7 +65,7 @@ class Part(Base):
 
     def to_json(self):
         return {
-            'part_id': self.element_id,
+            'part_id': self.part_id,
             'element_id': self.element_id,
             'building_id': self.building_id
         }

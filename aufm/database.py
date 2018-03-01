@@ -7,7 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 if 'AUFM_DB' in os.environ:
     connection = os.environ['AUFM_DB']
 else:
-    connection = 'sqlite:////tmp/test.db'
+    connection = 'sqlite:///test.db'
 
 print('Connecting to database at {}'.format(connection))
 engine = create_engine(connection, convert_unicode=True)

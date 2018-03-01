@@ -1,6 +1,6 @@
 import os
 
-from aufm import app, database, render_template
+from aufm import app, database
 
 app.config.from_object(__name__)
 
@@ -22,7 +22,3 @@ def remove_db_connection(exception=None):
 
 def connect_db():
     return None
-
-@app.route('/')
-def index():
-    return render_template('mat.html')
