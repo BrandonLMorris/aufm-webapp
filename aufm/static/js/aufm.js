@@ -29,6 +29,7 @@ var AUFM = {
 
                 AUFM.UI.Buildings.card = this.create(AUFM.UI.Buildings.card_options);
                 AUFM.UI.Parts.card = this.create(AUFM.UI.Parts.card_options);
+                AUFM.UI.Protocols.card = this.create(AUFM.UI.Protocols.card_options);
             },
             create: function(options) {
                 var self = this;
@@ -109,7 +110,7 @@ var AUFM = {
             _buildings: [],
             card_options: {
                 id: "building_card",
-                title: "Buildings",
+                title: "Building",
                 search: true,
                 collection: function(building) {
                     AUFM.UI.Buildings.close();
@@ -148,7 +149,7 @@ var AUFM = {
                 title: "Parts",
                 collection: function(part) {
                     AUFM.UI.Parts.close();
-                    AUFM.UI.Prtocols.open(part);
+                    AUFM.UI.Protocols.open(part);
                 },
                 actions: {
                     title: "Add New Part",
@@ -179,6 +180,37 @@ var AUFM = {
         Protocols: {
             _part: undefined,
             _protocols: [],
+            card_options: {
+                id: "protocols_card",
+                title: "Protocol",
+                collection: function(protocol) {
+                    //edit Protocol
+                },
+                actions: {
+                    title: "Add New Protocol",
+                    click: function(e) {
+                        // trigger add building modal
+                    },
+                },
+            },
+            card: undefined,
+            open: function(part) {
+                this._part = part
+                var self = this;
+                AUFM.Util.api({
+                    url: "part/" + self._part.pid() + "/protocol",
+                    callback: function(data) {
+                        data.protocols.forEach(function(p) {
+                            self._protocols.push(new AUFM.Schema.Protocol(p));
+                        });
+                        self.card.populate(self._protocols);
+                        self.card.fadeIn();
+                    }
+                })
+            },
+            close: function() {
+                this.card.fadeOut();
+            },
         },
     },
     /**
@@ -228,6 +260,10 @@ var AUFM = {
                 return this._part_id;
             };
 
+            this.pid = function() {
+                return this._element_id;
+            }
+
             this.collection = function() {
                 return {
                     id: this._part_id,
@@ -237,10 +273,17 @@ var AUFM = {
         },
         Protocol: function(data) {
             this._protocol_id = parseInt(data.protocol_id);
-            this.value = data.value;
+            this._value = data.value;
 
             this.id = function() {
                 return this._protocol_id;
+            };
+
+            this.collection = function() {
+                return {
+                    id: this._protocol_id,
+                    name: this._value,
+                };
             };
         },
     },
