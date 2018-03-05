@@ -219,6 +219,9 @@ def get_parts_in_building(building_id=None, name=None):
 def index():
     if "part" in request.args:
         part = request.args["part"]
+        p = Part.query.filter(Part.element_id==part).first()
+        if p is None:
+            part = -1
     else:
         part = -1
 
