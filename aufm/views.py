@@ -217,7 +217,12 @@ def get_parts_in_building(building_id=None, name=None):
 
 @app.route('/')
 def index():
-    return render_template('aufm.html')
+    if "part" in request.args:
+        part = request.args["part"]
+    else:
+        part = -1
+
+    return render_template('aufm.html', part=part)
 
 
 def _error(message, code):
