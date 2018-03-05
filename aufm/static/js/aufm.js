@@ -8,9 +8,17 @@ var AUFM = {
             //setup all required materialize initializations.
             $(".dropdown-button").dropdown();
             $('.modal').modal();
-
             AUFM.UI.Cards.setupCards();
-            AUFM.UI.Buildings.open();
+            if (partFromUrl < 0){
+                AUFM.UI.Buildings.open();
+            } else {
+                var a = new Object;
+                a.pid = function() {
+                    return partFromUrl
+                };
+                AUFM.UI.Protocols.open(a);
+            }
+            
         },
         Cards: {
             templates: {
