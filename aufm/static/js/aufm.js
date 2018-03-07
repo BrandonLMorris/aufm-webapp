@@ -1,4 +1,8 @@
 var AUFM = {
+    Constants: {
+        DEFAULT_COLOR: "blue darken-4",
+        DEFAULT_FONT_COLOR: "" // blank = default materialize
+    },
     /*
      * An collection of UI specific utilities and managing the 
      *  data that should be binded with these UI elements.
@@ -12,11 +16,17 @@ var AUFM = {
             AUFM.UI.Cards.setupCards();
             AUFM.UI.Buildings.open();
         },
+        /*
+         * Cards are dynamically created by passing in a set
+         *  of options that define how the card will look and behave.
+         */
         Cards: {
             templates: {
                 card: undefined,
                 collection: '<ul class="collection"></ul>',
                 collection_item: undefined,
+                collapsible: '<ul class="collapsible" data-collapsible="accordion">/<ul>',
+                collapsible_item: undefined,
                 property_container: undefined,
                 property_row: undefined,
             },
@@ -24,11 +34,14 @@ var AUFM = {
                 // set templates.
                 this.templates.card = $('#card_template').html();
                 this.templates.collection_item = $('#collection_item_template').html();
+                this.templates.collapsible_item = $('#collapsible_item_template').html();
                 this.templates.property_container = $('#property_container_template').html();
                 this.templates.property_row = $('#property_row_template').html();
 
+                // build cards.
                 AUFM.UI.Buildings.card = this.create(AUFM.UI.Buildings.card_options);
                 AUFM.UI.Parts.card = this.create(AUFM.UI.Parts.card_options);
+                AUFM.UI.Protocols.card = this.create(AUFM.UI.Protocols.card_options);
             },
             create: function(options) {
                 var self = this;
@@ -44,14 +57,15 @@ var AUFM = {
                 
                 // Setting up searching through content.
                 if(options.search) {
-                    card.find('.search-input input').attr("id", options.id + "_search").change(function(e) {
+                    card.find('.search-input input').attr("id", options.id + "_search").on('input', function(e) {
                         var value = $(this).val().toLowerCase().trim();
                         if(value == "")
                             card.find('.collection-item').show();
                         else
-                            card.find('.collection-item').each(i => {
-                                if(!i.html().toLowerCase().contains(value))
-                                    i.hide();
+                            card.find('.collection-item').each(function(index) {
+                                var ele = $(this);
+                                if(!ele.html().toLowerCase().includes(value))
+                                    ele.hide();
                             });
                     });
                     card.find('.search-input label').attr("for", options.id + "_search").html("Search " + options.title + "...");
@@ -67,7 +81,15 @@ var AUFM = {
                  */
                 var content = card.find('.content-container');
                 if(options.properties) {
-
+                    content.html(this.templates.property_container);
+                    card.populate = function(properties) {
+                        card.properties = properties;
+                        /*card.find('.property-table').append(
+                            card.properties.reduce(function(str, item) {
+                                return str;
+                            }, "");
+                        );*/
+                    };
                 } else if(options.collection) {
                     content.html(this.templates.collection);
                     card.populate = function(collection) {
@@ -87,13 +109,28 @@ var AUFM = {
                             e.preventDefault();
                         });
                     };
+                } else if(options.collapsible) {
+                    content.html(this.templates.collapsible);
+                    card.populate = function(collection) {
+                        card.collection = collection;
+                        content.find('.collapsible').html(
+                            card.collection.reduce(function(str, item) {
+                                if(!item.collection)
+                                    return str;
+                                return str + AUFM.Util.template(self.templates.collapsible_item, item.collection());
+                            }, "")
+                        );
+                        content.find('.collapsible').collapsible();
+                    };
                 } else if(options.content)
                     content.html(options.content);
                 else
                     throw "Invalid card content.";
 
                 if(options.actions) {
-                    card.find('.card-action .btn').html(options.actions.title);
+                    card.find('.card-action .btn').html(options.actions.title).click(function(e) {
+                        options.actions.click(e);
+                    });
                 } else 
                     card.find('.card-actions').hide();
 
@@ -101,12 +138,216 @@ var AUFM = {
                 return card;
             },
         },
+        /**
+         * Modals are similar to cards in terms of creation, but are meant to
+         *  complete a specific task and notify the caller when that task is 
+         *  either completed or cancelled.
+         */
+        Modals: {
+            open: function(options) {
+                var template = this.templates[options.template];
+                if(!template)
+                    throw "No template was given for the modal.";
+                if(!template.id)
+                    throw "id parameter in template is required for modal.";
+                var modal = $('#' + template.id);
+                if(modal.length <= 0) {
+                    modal = $($('#modal_template').html());
+                    modal.attr("id", template.id);
+                    $('body').append(modal);
+                    modal.modal();
+                }
+                modal.item = options.item;
+                options.context = options.context ? options.context : "create";
+                modal.context = options.context;
+                if(template.title) {
+                    var title = typeof template.title === "string" ? template.title : template.title[options.context];
+                    modal.find('.modal-content h4').html(title);
+                }
+                if(template.content)
+                    modal.find('.modal-body').html($('#' + template.content).html());
+                if(template.actions) {
+                    modal.find('.modal-footer').html(
+                        template.actions.reduce(function(str, action) {
+                            var title = typeof action.title === "string" ? action.title : action.title[options.context];
+                            if(!title)
+                                return str;
+                            return str + AUFM.Util.template($('#button_template').html(), {
+                                id: action.id,
+                                title: title,
+                                color: action.color ? action.color : AUFM.Constants.DEFAULT_COLOR,
+                                font_color: action.font_color ? action.font_color : AUFM.Constants.DEFAULT_FONT_COLOR,
+                            });
+                        }, "")
+                    );
+                    modal.find('.modal-footer .btn').click(function(e) {
+                        var id = $(this).attr("id");
+                        var action = template.actions.find(function(a) { return a.id == id; });
+                        var callback = options.actions ? options.actions[id] : undefined;
+                        if(action)
+                            action.click(modal, callback, e);
+                    });
+                }
+                modal.modal('open');
+            },
+            templates: {
+                building_modal: {
+                    id: "building_modal",
+                    title: {"create": "Add New Building", "edit": "Edit Building"},
+                    content: 'building_modal_template',
+                    actions: [
+                        {
+                            id: "save_building",
+                            title: {"create": "Add Building", "edit": "Save Building"},
+                            click: function(modal, callback) {
+                                var nameValue = modal.find("#building_name").val().trim();
+                                if(nameValue.length == 0)
+                                    return;
+                                AUFM.Util.api({
+                                    url: "building" + (modal.context == "edit" ? "/" + modal.item.id() : ""),
+                                    type: modal.context == "create" ? "POST" : "PUT",
+                                    data: { "name": nameValue },
+                                    callback: function(data) {
+                                        var building = new AUFM.Schema.Building(data);
+                                        if(modal.context == "create")
+                                            AUFM.UI.Buildings.add(building);
+                                        else {
+                                            AUFM.UI.Buildings.replace(building);
+                                        }
+                                        if(callback)
+                                            callback();
+                                        modal.modal("close");
+                                    },
+                                });
+                            },
+                        },
+                        {
+                            id: "delete_building",
+                            title: {"edit": "Delete Building"},
+                            click: function(modal) {
+                                AUFM.Util.api({
+                                    url: "building/" + modal.item.id(),
+                                    type: "DELETE",
+                                    callback: function(data) {
+                                        AUFM.UI.Buildings.delete(model.item.id());
+                                        modal.modal("close");
+                                    },
+                                });
+                            },
+                        },
+                    ]
+                },
+                part_modal: {
+                    id: "part_modal",
+                    title: {"create": "Add New Part", "edit": "Edit Part"},
+                    content: 'part_modal_template',
+                    actions: [
+                        {
+                            id: "save_part",
+                            title: {"create": "Add New Part", "edit": "Edit Part"},
+                            click: function(modal, callback) {
+                                var elementID = modal.find("#part_element_id").val().trim();
+                                if(elementID.length == 0)
+                                    return; // todo: alert min characters.
+                                if(!$.isNumeric(elementID))
+                                    return; // todo: alert numeric restriction.
+                                if(AUFM.UI.Parts.building == undefined)
+                                    return; //todo: alert building unset.
+                                AUFM.Util.api({
+                                    url: "part",
+                                    type: modal.context == "create" ? "POST" : "PUT",
+                                    data: { 
+                                        "building_id": AUFM.UI.Parts.building.id(),
+                                        "element_id": elementID
+                                     },
+                                    callback: function(data) {
+                                        AUFM.UI.Parts.add(new AUFM.Schema.Part(data));
+                                        if(callback)
+                                            callback();
+                                        modal.modal("close");
+                                    },
+                                });
+                            }, 
+                        },
+                        {
+                            id: "delete_part",
+                            title: {"edit": "Delete Part"},
+                            click: function(modal) {
+                                AUFM.Util.api({
+                                    url: "part/" + modal.item.elementID(),
+                                    type: "DELETE",
+                                    callback: function(data) {
+                                        AUFM.UI.Parts.delete(model.item.id());
+                                        modal.modal("close");
+                                    },
+                                });
+                            },
+                        },
+                    ]
+                },
+                protocol_modal: {
+                    id: "protocol_modal",
+                    title: {"create": "Add New Protocol", "edit": "Edit Protocol"},
+                    content: 'protocol_modal_template',
+                    actions: [
+                        {
+                            id: "save_protocol",
+                            title: {"create": "Add New Part", "edit": "Edit Part"},
+                            click: function(modal, callback) {
+                                var protocolValue = modal.find("#protocol_value").val().trim();
+                                if(protocolValue.length == 0)
+                                    return; // todo: alert min characters.
+                                if(AUFM.UI.Protocols.part == undefined)
+                                    return; //todo: alert part unset.
+                                AUFM.Util.api({
+                                    url: "protocol",
+                                    type: "POST",
+                                    data: { 
+                                        "value": protocolValue,
+                                     },
+                                    callback: function(protocolData) {
+                                        var protocol = new AUFM.Schema.Protocol(protocolData);
+                                        AUFM.Util.api({
+                                            url: "part/" + AUFM.UI.Protocols.part.elementID() + "/protocol/" + protocol.id(),
+                                            type: "POST",
+                                            data: { 
+                                                "value": protocolValue,
+                                             },
+                                            callback: function(data) {
+                                                AUFM.UI.Protocols.add(protocol);
+                                                if(callback)
+                                                    callback();
+                                                modal.modal("close");
+                                            },
+                                        });
+                                    },
+                                });
+                            },
+                        },
+                        {
+                            id: "delete_protocol",
+                            title: {"edit": "Delete Protocol"},
+                            click: function(modal) {
+                                AUFM.Util.api({
+                                    url: "part/" + AUFM.UI.Protocols.part.elementID() + "/protocol/" + modal.item.id(),
+                                    type: "DELETE",
+                                    callback: function(data) {
+                                        AUFM.UI.Protocols.delete(model.item.id());
+                                        modal.modal("close");
+                                    },
+                                });
+                            },
+                        },
+                    ]
+                },
+            },
+        },
         Users: {
-            _users: [],
+            users: [],
             card: undefined,
         },
         Buildings: {
-            _buildings: [],
+            buildings: [],
             card_options: {
                 id: "building_card",
                 title: "Buildings",
@@ -118,7 +359,9 @@ var AUFM = {
                 actions: {
                     title: "Add Building",
                     click: function(e) {
-                        // trigger add building modal
+                        AUFM.UI.Modals.open({
+                            template: "building_modal",
+                        });
                     },
                 },
             },
@@ -129,9 +372,9 @@ var AUFM = {
                     url: "building",
                     callback: function(data) {
                         data.forEach(function(b) {
-                            self._buildings.push(new AUFM.Schema.Building(b));
+                            self.buildings.push(new AUFM.Schema.Building(b));
                         });
-                        self.card.populate(self._buildings);
+                        self.card.populate(self.buildings);
                         self.card.fadeIn();
                     },
                 });
@@ -139,46 +382,147 @@ var AUFM = {
             close: function() {
                 this.card.hide();
             },
+            //todo next cycle: abstract the following
+            add: function(building) {
+                this.buildings.push(building);
+                this.card.populate(this.buildings);
+            },
+            remove: function(id) {
+                this.buildings = this.buildings.filter(function(b) { return b.id() != id;});
+                this.card.populate(this.buildings);
+            },
+            replace: function(building) {
+                var index = this.buildings.indexOf(function(b) { return b.id() != building.id();});
+                if(index >= 0) {
+                    this.buildings[index] = building;
+                    this.card.populate(this.buildings);
+                }
+            },
         },
         Parts: {
-            _building: undefined,
-            _parts: [],
+            building: undefined,
+            parts: [],
             card_options: {
                 id: "parts_card",
                 title: "Parts",
+                search: true,
                 collection: function(part) {
                     AUFM.UI.Parts.close();
-                    AUFM.UI.Prtocols.open(part);
+                    AUFM.UI.Protocols.open(part);
                 },
                 actions: {
                     title: "Add New Part",
                     click: function(e) {
-                        // trigger add building modal
+                        AUFM.UI.Modals.open({
+                            template: "part_modal",
+                        });
                     },
                 },
             },
             card: undefined,
             open: function(building) {
-                this._building = building;
+                this.building = building ? building : this.building;
                 var self = this;
                 AUFM.Util.api({
-                    url: "building/" + self._building.id() + "/part",
+                    url: "building/" + self.building.id() + "/part",
                     callback: function(data) {
                         data.parts.forEach(function(p) {
-                            self._parts.push(new AUFM.Schema.Part(p));
+                            self.parts.push(new AUFM.Schema.Part(p));
                         });
-                        self.card.populate(self._parts);
+                        self.card.populate(self.parts);
                         self.card.fadeIn();
                     },
                 });
             },
             close: function() {
-                this.card.fadeOut();
+                this.card.hide();
+            },
+            //todo next cycle: abstract the following
+            add: function(part) {
+                this.parts.push(part);
+                this.card.populate(this.parts);
+            },
+            remove: function(id) {
+                this.parts = this.parts.filter(function(p) { return p.id() != id;});
+                this.card.populate(this.parts);
+            },
+            replace: function(part) {
+                var index = this.parts.indexOf(function(p) { return p.id() != part.id();});
+                if(index >= 0) {
+                    this.parts[index] = part;
+                    this.card.populate(this.parts);
+                }
             },
         },
         Protocols: {
-            _part: undefined,
-            _protocols: [],
+            part: undefined,
+            protocols: [],
+            card_options: {
+                id: "protcols_card",
+                title: "Protocols",
+                search: true,
+                collapsible: {
+                    actions: [
+                        {
+                            title: "Replace Protocol",
+                            click: function(protocol) {},
+                        },
+                        {
+                            title: "Delete Protocol",
+                            color: "red",
+                            click: function(protocol) {},
+                        }
+                    ],
+                },
+                actions: {
+                    title: "Attach Protocol",
+                    click: function(e) {
+                        AUFM.UI.Modals.open({
+                            template: "protocol_modal",
+                        });
+                    },
+                },
+            },
+            card: undefined,
+            open: function(part) {
+                this.part = part;
+                var self = this;
+                AUFM.Util.api({
+                    url: "part/" + self.part.elementID() + "/protocol",
+                    callback: function(data) {
+                        data.protocols.forEach(function(p) {
+                            self.protocols.push(new AUFM.Schema.Protocol(p));
+                        });
+                        self.card.populate(self.protocols);
+                        self.card.fadeIn();
+                    },
+                });
+            },
+            close: function() {
+                this.card.hide();
+            },
+            back: function() {
+                this.close();
+                this.part = undefined;
+                this.protocols = [];
+                AUFM.UI.Parts.open();
+            },
+            //todo next cycle: abstract the following
+            add: function(protocol) {
+                this.protocols.push(protocol);
+                this.card.populate(this.protocols);
+            },
+            remove: function(id) {
+                this.protocols = this.protocols.filter(function(p) { return p.id() != id;});
+                this.card.populate(this.protocols);
+            },
+            replace: function(protocol) {
+                var index = this.protocols.indexOf(function(p) { return p.id() != protocol.id();});
+                if(index >= 0) {
+                    this.protocols[index] = protocol;
+                    this.card.populate(this.protocols);
+                }
+            },
         },
     },
     /**
@@ -228,6 +572,10 @@ var AUFM = {
                 return this._part_id;
             };
 
+            this.elementID = function() {
+                return this._element_id;
+            };
+
             this.collection = function() {
                 return {
                     id: this._part_id,
@@ -242,6 +590,14 @@ var AUFM = {
             this.id = function() {
                 return this._protocol_id;
             };
+
+            this.collection = function() {
+                return {
+                    id: this._protocol_id,
+                    content: this.value,
+                    button_title: "Replace Protocol"
+                }
+            };
         },
     },
     Util: {
@@ -255,6 +611,9 @@ var AUFM = {
             $.ajax({
                 url: window.location.origin + "/api/" + params.url,
                 type: params.type ? params.type : "GET",
+                data: params.data ? JSON.stringify(params.data) : "",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
                 success: params.callback,
                 error: function(jqXHR, text, error) {
                     params.callback({
