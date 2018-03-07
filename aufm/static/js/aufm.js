@@ -350,7 +350,7 @@ var AUFM = {
             buildings: [],
             card_options: {
                 id: "building_card",
-                title: "Buildings",
+                title: "Building",
                 search: true,
                 collection: function(building) {
                     AUFM.UI.Buildings.close();
@@ -455,6 +455,7 @@ var AUFM = {
             },
         },
         Protocols: {
+<<<<<<< HEAD
             part: undefined,
             protocols: [],
             card_options: {
@@ -480,11 +481,26 @@ var AUFM = {
                         AUFM.UI.Modals.open({
                             template: "protocol_modal",
                         });
+=======
+            _part: undefined,
+            _protocols: [],
+            card_options: {
+                id: "protocols_card",
+                title: "Protocol",
+                collection: function(protocol) {
+                    //edit Protocol
+                },
+                actions: {
+                    title: "Add New Protocol",
+                    click: function(e) {
+                        // trigger add building modal
+>>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
                     },
                 },
             },
             card: undefined,
             open: function(part) {
+<<<<<<< HEAD
                 this.part = part;
                 var self = this;
                 AUFM.Util.api({
@@ -522,6 +538,23 @@ var AUFM = {
                     this.protocols[index] = protocol;
                     this.card.populate(this.protocols);
                 }
+=======
+                this._part = part
+                var self = this;
+                AUFM.Util.api({
+                    url: "part/" + self._part.pid() + "/protocol",
+                    callback: function(data) {
+                        data.protocols.forEach(function(p) {
+                            self._protocols.push(new AUFM.Schema.Protocol(p));
+                        });
+                        self.card.populate(self._protocols);
+                        self.card.fadeIn();
+                    }
+                })
+            },
+            close: function() {
+                this.card.fadeOut();
+>>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
             },
         },
     },
@@ -572,9 +605,15 @@ var AUFM = {
                 return this._part_id;
             };
 
+<<<<<<< HEAD
             this.elementID = function() {
                 return this._element_id;
             };
+=======
+            this.pid = function() {
+                return this._element_id;
+            }
+>>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
 
             this.collection = function() {
                 return {
@@ -585,7 +624,7 @@ var AUFM = {
         },
         Protocol: function(data) {
             this._protocol_id = parseInt(data.protocol_id);
-            this.value = data.value;
+            this._value = data.value;
 
             this.id = function() {
                 return this._protocol_id;
@@ -594,9 +633,14 @@ var AUFM = {
             this.collection = function() {
                 return {
                     id: this._protocol_id,
+<<<<<<< HEAD
                     content: this.value,
                     button_title: "Replace Protocol"
                 }
+=======
+                    name: this._value,
+                };
+>>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
             };
         },
     },

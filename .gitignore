@@ -1,4 +1,7 @@
 venv/*
 cover/
 .coverage
+.DS_Store
+.vscode/
+aufm/__pycache__/
 
