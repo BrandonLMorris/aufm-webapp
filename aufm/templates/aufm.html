@@ -28,6 +28,13 @@
             </div>
         </nav>
     </div>
+    <div class="row breadcrumb-row no-margin-bottom">
+        <div class="col s8">
+            <div clas="card">
+                    <div id="card_breadcrumb"></div>
+            </div>
+        </div>
+    </div>
     <div id="content_area"></div>
 
     <!-- Dropdown contents -->
@@ -38,6 +45,9 @@
     <!-- Re-Usable Scripts and templates -->
     <script type="text/html" id="button_template">
         <a class="waves-effect waves-light btn %color% %font_color%" id="%id%">%title%</a>
+    </script>
+    <script type="text/html" id="breadcrumb_template">
+        <a href="#!" class="breadcrumb" data-card="%card%">%title%</a>
     </script>
     <script type="text/html" id="card_template">
         <div class="row content-area" style="display: none;">
@@ -63,13 +73,13 @@
         </div>
     </script>
     <script type="text/html" id="collection_item_template">
-        <a href="#!" class="collection-item blue-text text-darken-4" data-id="%id%">%name%</a>
+        <a href="#!" class="collection-item searchable blue-text text-darken-4" data-id="%id%">%value%</a>
     </script>
     <script type="text/html" id="collapsible_item_template">
-        <li data-id="%id%">
-            <div class="collapsible-header">%content%</div>
+        <li class="searchable" data-id="%id%">
+            <div class="collapsible-header">%value%</div>
             <div class="collapsible-body">
-                <a class="waves-effect waves-light btn blue darken-4">%button_title%</a>
+                %actions%
             </div>
         </li>
     </script>

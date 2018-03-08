@@ -1,8 +1,12 @@
-.content-area {
+.content-area, .breadcrumb-row {
     display: flex;
     justify-content: center;
     width: 100%;
     padding-top: 20px;
+}
+
+.no-margin-bottom {
+    margin-bottom: 0px !important;
 }
 
 /* Property Table */
@@ -50,6 +54,10 @@ nav .brand-logo {
     max-height: 80% !important;
 }
 
+.btn {
+    margin: 0px 10px;
+}
+
 /* label color */
 .input-field label {
     color: #0D47A1 !important;
@@ -77,4 +85,26 @@ textarea.materialize-textarea:focus:not([readonly]) {
 }
 
 /* Collapsible */
-.collapsible-header { white-space: pre-wrap !important;}
+.collapsible-header { white-space: pre-wrap !important; }
+.collapsible-body { 
+    /*padding: 1rem !important;*/
+    background-color: #f9f9f9;
+}
+
+/* Breadcrumb */
+#card_breadcrumb {
+    display: flex;
+    align-content: center;
+    align-items: center;
+}
+.breadcrumb:last-child {
+    color: #000;
+}
+.breadcrumb:before {
+    color: gray;
+}
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    color: gray;
+}

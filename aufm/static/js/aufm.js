@@ -13,7 +13,7 @@ var AUFM = {
             $(".dropdown-button").dropdown();
             $('.modal').modal();
 
-            AUFM.UI.Cards.setupCards();
+            AUFM.UI.Cards.initialize();
             AUFM.UI.Buildings.open();
         },
         /*
@@ -30,18 +30,13 @@ var AUFM = {
                 property_container: undefined,
                 property_row: undefined,
             },
-            setupCards: function() {
+            initialize: function() {
                 // set templates.
                 this.templates.card = $('#card_template').html();
                 this.templates.collection_item = $('#collection_item_template').html();
                 this.templates.collapsible_item = $('#collapsible_item_template').html();
                 this.templates.property_container = $('#property_container_template').html();
                 this.templates.property_row = $('#property_row_template').html();
-
-                // build cards.
-                AUFM.UI.Buildings.card = this.create(AUFM.UI.Buildings.card_options);
-                AUFM.UI.Parts.card = this.create(AUFM.UI.Parts.card_options);
-                AUFM.UI.Protocols.card = this.create(AUFM.UI.Protocols.card_options);
             },
             create: function(options) {
                 var self = this;
@@ -52,23 +47,24 @@ var AUFM = {
                     card.attr("id", options.id);
 
                 // Card title.
+                var title = options.title ? typeof options.title == "string" ? options.title : options.title() : "";
                 if(options.title)
-                    card.find('.card-title').html(options.title);
+                    card.find('.card-title').html(title);
                 
                 // Setting up searching through content.
                 if(options.search) {
                     card.find('.search-input input').attr("id", options.id + "_search").on('input', function(e) {
                         var value = $(this).val().toLowerCase().trim();
                         if(value == "")
-                            card.find('.collection-item').show();
+                            card.find('.searchable').show();
                         else
-                            card.find('.collection-item').each(function(index) {
+                            card.find('.searchable').each(function(index) {
                                 var ele = $(this);
                                 if(!ele.html().toLowerCase().includes(value))
                                     ele.hide();
                             });
                     });
-                    card.find('.search-input label').attr("for", options.id + "_search").html("Search " + options.title + "...");
+                    card.find('.search-input label').attr("for", options.id + "_search").html("Search " + title + "...");
                     // setup search actions.
                 } else
                     card.find('.search').hide();
@@ -109,7 +105,7 @@ var AUFM = {
                             e.preventDefault();
                         });
                     };
-                } else if(options.collapsible) {
+                } else if(options.collapsible) { // todo: refactor & make understandable
                     content.html(this.templates.collapsible);
                     card.populate = function(collection) {
                         card.collection = collection;
@@ -117,7 +113,19 @@ var AUFM = {
                             card.collection.reduce(function(str, item) {
                                 if(!item.collection)
                                     return str;
-                                return str + AUFM.Util.template(self.templates.collapsible_item, item.collection());
+                                var collection = item.collection();
+                                return str + AUFM.Util.template(self.templates.collapsible_item, {
+                                    id: collection.id,
+                                    value: collection.value,
+                                    actions: options.collapsible.actions.reduce(function(str, action) {
+                                        return str + AUFM.Util.template($('#button_template').html(), {
+                                            id: action.id,
+                                            title: action.title,
+                                            color: action.color ? action.color : AUFM.Constants.DEFAULT_COLOR,
+                                            font_color: action.font_color ? action.font_color : AUFM.Constants.DEFAULT_FONT_COLOR,
+                                        }); // todo: abstract
+                                    }, "")
+                                });
                             }, "")
                         );
                         content.find('.collapsible').collapsible();
@@ -157,6 +165,8 @@ var AUFM = {
                     $('body').append(modal);
                     modal.modal();
                 }
+                if(template.width)
+                    modal.css("width", template.width + "%");
                 modal.item = options.item;
                 options.context = options.context ? options.context : "create";
                 modal.context = options.context;
@@ -195,6 +205,7 @@ var AUFM = {
                     id: "building_modal",
                     title: {"create": "Add New Building", "edit": "Edit Building"},
                     content: 'building_modal_template',
+                    width: 35,
                     actions: [
                         {
                             id: "save_building",
@@ -241,6 +252,7 @@ var AUFM = {
                     id: "part_modal",
                     title: {"create": "Add New Part", "edit": "Edit Part"},
                     content: 'part_modal_template',
+                    width: 35,
                     actions: [
                         {
                             id: "save_part",
@@ -289,6 +301,7 @@ var AUFM = {
                     id: "protocol_modal",
                     title: {"create": "Add New Protocol", "edit": "Edit Protocol"},
                     content: 'protocol_modal_template',
+                    width: 35,
                     actions: [
                         {
                             id: "save_protocol",
@@ -342,6 +355,30 @@ var AUFM = {
                 },
             },
         },
+        Breadcrumb: {
+            breadcrumb_stack: [],
+            push: function(card) {
+                if(this.breadcrumb_stack.includes(card))
+                    return;
+                $('#card_breadcrumb .breadcrumb').off().click(this.click);
+                $('#card_breadcrumb').append(AUFM.Util.template($('#breadcrumb_template').html(), {
+                    card: card,
+                    title: card,
+                }));
+                this.breadcrumb_stack.push(card);
+            },
+            clear: function() {
+                $('#card_breadcrumb *').remove();
+            },
+            click: function(e) {
+                var card = $(this).attr("data-card");
+                var breadcrumb = $(this);
+                AUFM.UI.Breadcrumb.breadcrumb_stack.splice(breadcrumb.index() + 1);
+                breadcrumb.nextAll('.breadcrumb').remove();
+                if(AUFM.UI[card])
+                    AUFM.UI[card].open();
+            },
+        },
         Users: {
             users: [],
             card: undefined,
@@ -368,6 +405,9 @@ var AUFM = {
             card: undefined,
             open: function() {
                 var self = this;
+                $('.content-area').hide();
+                self.card = self.card ? self.card : AUFM.UI.Cards.create(this.card_options);
+                self.buildings = [];
                 AUFM.Util.api({
                     url: "building",
                     callback: function(data) {
@@ -376,6 +416,7 @@ var AUFM = {
                         });
                         self.card.populate(self.buildings);
                         self.card.fadeIn();
+                        AUFM.UI.Breadcrumb.push("Buildings");
                     },
                 });
             },
@@ -404,7 +445,9 @@ var AUFM = {
             parts: [],
             card_options: {
                 id: "parts_card",
-                title: "Parts",
+                title: function() {
+                    return "Parts for " + AUFM.UI.Parts.building.collection().value
+                },
                 search: true,
                 collection: function(part) {
                     AUFM.UI.Parts.close();
@@ -423,6 +466,9 @@ var AUFM = {
             open: function(building) {
                 this.building = building ? building : this.building;
                 var self = this;
+                $('.content-area').hide();
+                self.card = self.card ? self.card : AUFM.UI.Cards.create(this.card_options);
+                self.parts = [];
                 AUFM.Util.api({
                     url: "building/" + self.building.id() + "/part",
                     callback: function(data) {
@@ -431,6 +477,7 @@ var AUFM = {
                         });
                         self.card.populate(self.parts);
                         self.card.fadeIn();
+                        AUFM.UI.Breadcrumb.push("Parts");
                     },
                 });
             },
@@ -455,7 +502,6 @@ var AUFM = {
             },
         },
         Protocols: {
-<<<<<<< HEAD
             part: undefined,
             protocols: [],
             card_options: {
@@ -481,28 +527,16 @@ var AUFM = {
                         AUFM.UI.Modals.open({
                             template: "protocol_modal",
                         });
-=======
-            _part: undefined,
-            _protocols: [],
-            card_options: {
-                id: "protocols_card",
-                title: "Protocol",
-                collection: function(protocol) {
-                    //edit Protocol
-                },
-                actions: {
-                    title: "Add New Protocol",
-                    click: function(e) {
-                        // trigger add building modal
->>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
                     },
                 },
             },
             card: undefined,
             open: function(part) {
-<<<<<<< HEAD
                 this.part = part;
                 var self = this;
+                $('.content-area').hide();
+                self.card = self.card ? self.card : AUFM.UI.Cards.create(this.card_options);
+                self.protocols = [];
                 AUFM.Util.api({
                     url: "part/" + self.part.elementID() + "/protocol",
                     callback: function(data) {
@@ -511,6 +545,7 @@ var AUFM = {
                         });
                         self.card.populate(self.protocols);
                         self.card.fadeIn();
+                        AUFM.UI.Breadcrumb.push("Protocols");
                     },
                 });
             },
@@ -538,23 +573,6 @@ var AUFM = {
                     this.protocols[index] = protocol;
                     this.card.populate(this.protocols);
                 }
-=======
-                this._part = part
-                var self = this;
-                AUFM.Util.api({
-                    url: "part/" + self._part.pid() + "/protocol",
-                    callback: function(data) {
-                        data.protocols.forEach(function(p) {
-                            self._protocols.push(new AUFM.Schema.Protocol(p));
-                        });
-                        self.card.populate(self._protocols);
-                        self.card.fadeIn();
-                    }
-                })
-            },
-            close: function() {
-                this.card.fadeOut();
->>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
             },
         },
     },
@@ -592,7 +610,7 @@ var AUFM = {
             this.collection = function() {
                 return {
                     id: this._building_id,
-                    name: this._name,
+                    value: this._name,
                 };
             };
         },
@@ -605,20 +623,14 @@ var AUFM = {
                 return this._part_id;
             };
 
-<<<<<<< HEAD
             this.elementID = function() {
                 return this._element_id;
             };
-=======
-            this.pid = function() {
-                return this._element_id;
-            }
->>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
 
             this.collection = function() {
                 return {
                     id: this._part_id,
-                    name: this._element_id,
+                    value: this._element_id,
                 };
             };
         },
@@ -633,14 +645,8 @@ var AUFM = {
             this.collection = function() {
                 return {
                     id: this._protocol_id,
-<<<<<<< HEAD
-                    content: this.value,
-                    button_title: "Replace Protocol"
-                }
-=======
-                    name: this._value,
+                    value: this._value,
                 };
->>>>>>> dfd2843a41426426fb67d683fe848d82124edc00
             };
         },
     },
