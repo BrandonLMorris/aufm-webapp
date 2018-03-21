@@ -4,4 +4,6 @@ cover/
 .DS_Store
 .vscode/
 aufm/__pycache__/
+**/*.pyc
+DemoTest.db
 

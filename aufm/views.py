@@ -1,5 +1,5 @@
 from aufm import app
-from aufm.models import User, Protocol, Building, PartProtocol, Part
+from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
 from flask import jsonify, request, render_template
 
@@ -214,6 +214,92 @@ def get_parts_in_building(building_id=None, name=None):
     building_json = building.to_json()
     building_json['parts'] = [p.to_json() for p in parts]
     return jsonify(building_json)
+
+
+@app.route('/api/protocol-family', methods=['GET', 'POST'])
+def get_all_protocol_families():
+    if request.method == 'GET':
+        families = ProtocolFamily.query.all()
+        return jsonify([f.to_json() for f in families])
+    # Must be a POST
+    if not request.is_json:
+        return _error('Request must be JSON', 400)
+    form = request.get_json()
+    if 'family_name' not in form:
+        return _error('family_name key not specified', 400)
+    if not set(form.keys()).issubset({'family_name'}):
+        return _error('Extra keys specified', 400)
+    pf = ProtocolFamily(family_name=form['family_name'])
+    db_session.add(pf)
+    db_session.commit()
+    return jsonify(pf.to_json())
+
+
+@app.route('/api/protocol-family/<int:family_id>', methods=['GET', 'PUT', 'DELETE'])
+def get_protocols_for_family(family_id):
+    if request.method == 'GET':
+        protocol_family = (ProtocolFamily.query
+                .filter(ProtocolFamily.family_id==family_id).first())
+        if protocol_family is None:
+            return _error('Protocol family does not exist', 404)
+        family_protocols = (ProtocolFamilyProtocol.query
+                .filter(ProtocolFamilyProtocol.family_id==family_id).all())
+        protocols = list()
+        for family_protocol in family_protocols:
+            p = Protocol.query.filter(Protocol.protocol_id==family_protocol.protocol_id)
+            protocols.append(p.first().to_json())
+        resp = {
+            'family_id': family_id,
+            'family_name': protocol_family.family_name,
+            'protocols': protocols
+        }
+        return jsonify(resp)
+    pf = ProtocolFamily.query.filter(ProtocolFamily.family_id==family_id).first()
+    if pf is None:
+        return _error('Protocol family does not exist', 404)
+    if request.method == 'PUT':
+        if not request.is_json:
+            return _error('Request must be JSON type', 400)
+        form = request.get_json()
+        if not 'family_name' in form:
+            return _error('family_name key not specified', 400)
+        if not set(form.keys()).issubset({'family_name'}):
+            return _error('Extra keys specified', 400)
+        pf.family_name = form['family_name']
+        db_session.commit()
+        return jsonify(pf.to_json())
+    # Must be a delete
+    to_delete = pf.to_json()
+    db_session.delete(pf)
+    db_session.commit()
+    return jsonify(to_delete)
+
+
+@app.route('/api/protocol-family/<int:family_id>/protocol/<int:protocol_id>',
+           methods=['POST', 'DELETE'])
+def add_remove_protocol_family_association(family_id, protocol_id):
+    family = ProtocolFamily.query.filter(ProtocolFamily.family_id==family_id).first()
+    if family is None:
+        return _error('Protocol family does not exist', 404)
+    protocol = Protocol.query.filter(Protocol.protocol_id==protocol_id).first()
+    if protocol is None:
+        return _error('Protocol does not exists', 404)
+    if request.method == 'POST':
+        pfp = ProtocolFamilyProtocol(family.family_id, protocol.protocol_id)
+        db_session.add(pfp)
+        db_session.commit()
+        return jsonify(pfp.to_json())
+    # Must be a delete
+    pfp = ProtocolFamilyProtocol.query.filter(
+            ProtocolFamilyProtocol.family_id==family.family_id,
+            ProtocolFamilyProtocol.protocol_id==protocol.protocol_id).first()
+    if pfp is None:
+        return _error('Protocol does not exist in specified family', 404)
+    to_delete = pfp.to_json()
+    db_session.delete(pfp)
+    db_session.commit()
+    return jsonify(to_delete)
+
 
 @app.route('/')
 def index():
