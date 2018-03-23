@@ -55,7 +55,11 @@ nav .brand-logo {
 }
 
 .btn {
-    margin: 0px 10px;
+    margin: 0px 10px !important;
+}
+
+.modal .button {
+
 }
 
 /* label color */
@@ -89,6 +93,26 @@ textarea.materialize-textarea:focus:not([readonly]) {
 .collapsible-body { 
     /*padding: 1rem !important;*/
     background-color: #f9f9f9;
+}
+
+.collection-item {
+    display: flex !important;
+    justify-content: space-between;
+}
+.collection-item .actions {
+    display: none;
+    transition: 0.3s;
+    border-radius: 3px;
+}
+.collection-item:hover .actions {
+    display: flex !important;
+}
+.collection-item .action {
+    margin: 0 5px;
+    height: 20px;
+}
+.collection-item .action .material-icon {
+    font-size: 20px !important;
 }
 
 /* Breadcrumb */

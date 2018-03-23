@@ -73,7 +73,13 @@
         </div>
     </script>
     <script type="text/html" id="collection_item_template">
-        <a href="#!" class="collection-item searchable blue-text text-darken-4" data-id="%id%">%value%</a>
+        <a href="#!" class="collection-item searchable blue-text text-darken-4" data-id="%id%">
+            <span>%value%</span>
+            <div class="actions"></div>
+        </a>
+    </script>
+    <script type="text/html" id="collection_action_template">
+        <div class="action" data-action="%action%"><i class="material-icons">%icon%</i></div>
     </script>
     <script type="text/html" id="collapsible_item_template">
         <li class="searchable" data-id="%id%">
