@@ -9,7 +9,8 @@ app.config.update(dict(
     # DATABASE=os.path.join(app.root_path, 'flaskr.db'),
     SECRET_KEY='development key',
     USERNAME='admin',
-    PASSWORD='default'
+    PASSWORD='default',
+    TEMPLATES_AUTO_RELOAD=True
 ))
 app.config.from_envvar('AUFM_SETTINGS', silent=True)
 

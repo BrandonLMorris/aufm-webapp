@@ -1,7 +1,7 @@
 from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part
 from aufm.database import db_session
-from flask import jsonify, request
+from flask import jsonify, request, render_template
 
 
 @app.route('/api/user', methods=['GET', 'POST'])
@@ -214,6 +214,10 @@ def get_parts_in_building(building_id=None, name=None):
     building_json = building.to_json()
     building_json['parts'] = [p.to_json() for p in parts]
     return jsonify(building_json)
+
+@app.route('/')
+def index():
+    return render_template('aufm.html')
 
 
 def _error(message, code):
