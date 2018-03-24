@@ -1,10 +1,9 @@
 import json
-import os
 import unittest
 
 from aufm import app
 from aufm.database import Base, engine, db_session
-from aufm.models import User, Protocol, Building, PartProtocol, Part
+from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 
 
 class ViewsTest(unittest.TestCase):
@@ -22,6 +21,8 @@ class ViewsTest(unittest.TestCase):
         self.building2 = Building(name='Parker')
         self.protocol1 = Protocol(value='Wash your hands')
         self.protocol2 = Protocol(value='Turn off the lights')
+        self.family1 = ProtocolFamily(family_id=1, family_name='family1')
+        self.family2 = ProtocolFamily(family_id=2, family_name='family2')
 
     def setUp(self):
         app.testing = True
@@ -32,6 +33,7 @@ class ViewsTest(unittest.TestCase):
     def tearDown(self):
         with app.app_context():
             Base.metadata.drop_all(bind=engine)
+        db_session.commit()
 
     def test_getting_no_users(self):
         resp = self.app.get('/api/user')
@@ -115,6 +117,10 @@ class ViewsTest(unittest.TestCase):
             'protocols': [protocol.to_json()]
         }
         self.assertEqual(resp, expected)
+
+    def test_get_protocol_for_nonexistent_part(self):
+        raw = self.app.get('/api/part/999/protocol')
+        self.assertEqual(raw.status_code, 404)
 
     def test_connect_part_protocol(self):
         part = Part(element_id=1234)
@@ -221,6 +227,10 @@ class ViewsTest(unittest.TestCase):
         resp = json.loads(self.app.get(
             '/api/building/{}'.format(b.name)).get_data())
         self.assertEqual(resp, b.to_json())
+
+    def test_get_nonexistent_building_by_id(self):
+        raw = self.app.get('/api/building/999')
+        self.assertEqual(404, raw.status_code)
 
     def test_adding_part_requires_json(self):
         resp = self.app.post('/api/part', content_type='text/html',
@@ -470,6 +480,159 @@ class ViewsTest(unittest.TestCase):
                 .first())
         self.assertEqual(changed.name, 'Super Shelby')
         self.assertEqual(resp, changed.to_json())
+
+    def test_get_protocol_families(self):
+        db_session.add_all([self.family1, self.family2])
+        db_session.commit()
+        resp = json.loads(self.app.get('/api/protocol-family').data)
+        self.assertEqual(resp,
+                         [self.family1.to_json(), self.family2.to_json()])
+
+    def test_add_protocol_families_not_json(self):
+        raw = self.app.post('/api/protocol-family', content_type='text/html',
+                            data='this is not json')
+        self.assertEqual(400, raw.status_code)
+
+    def test_add_protocol_families_no_family_name(self):
+        raw = self.app.post(
+                '/api/protocol-family', content_type='application/json',
+                data=json.dumps({}))
+        self.assertEqual(400, raw.status_code)
+
+    def test_add_protocol_families_extra_keys(self):
+        raw = self.app.post(
+                '/api/protocol-family', content_type='application/json',
+                data=json.dumps({'family_name': 'super family', 'extra': 'h'}))
+        self.assertEqual(400, raw.status_code)
+
+    def test_add_protocol_families_successful(self):
+        raw = self.app.post(
+                '/api/protocol-family', content_type='application/json',
+                data=json.dumps({'family_name': 'super family'}))
+        resp = json.loads(raw.data)
+        fam = ProtocolFamily.query.first()
+        self.assertEqual(fam.to_json(), resp)
+
+    def test_get_protocols_for_family_successful(self):
+        db_session.add_all([self.protocol1, self.protocol2, self.family1])
+        db_session.commit()
+        pfp1 = ProtocolFamilyProtocol(protocol_id=self.protocol1.protocol_id,
+                                      family_id=self.family1.family_id)
+        pfp2 = ProtocolFamilyProtocol(protocol_id=self.protocol2.protocol_id,
+                                      family_id=self.family1.family_id)
+        db_session.add_all([pfp1, pfp2])
+        db_session.commit()
+        q_str = '/api/protocol-family/{}'.format(self.family1.family_id)
+        resp = json.loads(self.app.get(q_str).data)
+        expected = {
+            'family_id': self.family1.family_id,
+            'family_name': self.family1.family_name,
+            'protocols': [self.protocol1.to_json(), self.protocol2.to_json()]
+        }
+        self.assertEqual(resp, expected)
+
+    def test_get_protocols_for_family_nonexistent_family(self):
+        raw = self.app.get('/api/protocol-family/99999')
+        self.assertEqual(404, raw.status_code)
+
+    def test_edit_protocol_family_successful(self):
+        fam = ProtocolFamily(family_name='Testfam', family_id=0)
+        db_session.add(fam)
+        db_session.commit()
+        q_str = '/api/protocol-family/0'
+        self.app.put(q_str, content_type='application/json',
+                data=json.dumps({'family_name': 'super family1'}))
+        changed = ProtocolFamily.query.first()
+        self.assertEqual(changed.to_json()['family_name'], 'super family1')
+
+    def test_edit_protocol_family_not_json(self):
+        db_session.add(self.family1)
+        db_session.commit()
+        q_str = '/api/protocol-family/{}'.format(self.family1.family_id)
+        raw = self.app.put(q_str, content_type='text/html',
+                data='this is not json')
+        self.assertEqual(raw.status_code, 400)
+
+    def test_edit_protocol_family_nonexistent_family(self):
+        q_str = '/api/protocol-family/{}'.format(self.family1.family_id)
+        raw = self.app.put(q_str, content_type='application/json',
+                data=json.dumps({'family_name': 'super family1'}))
+        self.assertEqual(raw.status_code, 404)
+
+    def test_edit_protocol_family_no_family_name(self):
+        db_session.add(self.family1)
+        db_session.commit()
+        q_str = '/api/protocol-family/{}'.format(self.family1.family_id)
+        raw = self.app.put(q_str, content_type='application/json',
+                data=json.dumps({}))
+        self.assertEqual(raw.status_code, 400)
+
+    def test_edit_protocol_family_extra_keys(self):
+        db_session.add(self.family1)
+        db_session.commit()
+        q_str = '/api/protocol-family/{}'.format(self.family1.family_id)
+        raw = self.app.put(q_str, content_type='application/json',
+                data=json.dumps({'family_name': 'super family', 'extra': '1'}))
+        self.assertEqual(raw.status_code, 400)
+
+    def test_delete_protocol_family_nonexistent_family(self):
+        raw = self.app.delete('/api/protocol-family/999')
+        self.assertEqual(404, raw.status_code)
+
+    def test_delete_protocol_family_successful(self):
+        db_session.add(self.family1)
+        db_session.commit()
+        q_str = '/api/protocol-family/{}'.format(self.family1.family_id)
+        self.app.delete(q_str)
+        fam = ProtocolFamily.query.first()
+        self.assertIsNone(fam)
+
+    def test_add_family_protocol_association_successful(self):
+        db_session.add_all([self.family1, self.protocol1])
+        db_session.commit()
+        q_str = '/api/protocol-family/{}/protocol/{}'.format(
+                self.family1.family_id, self.protocol1.protocol_id)
+        self.app.post(q_str)
+        pfp = ProtocolFamilyProtocol.query.first()
+        self.assertEqual(pfp.family_id, self.family1.family_id)
+        self.assertEqual(pfp.protocol_id, self.protocol1.protocol_id)
+
+    def test_add_family_protocol_association_nonexistent_family(self):
+        db_session.add_all([self.protocol1])
+        db_session.commit()
+        q_str = '/api/protocol-family/{}/protocol/{}'.format(
+                self.family1.family_id, self.protocol1.protocol_id)
+        raw = self.app.post(q_str)
+        self.assertEqual(404, raw.status_code)
+
+    def test_add_family_protocol_association_nonexistent_protocol(self):
+        db_session.add_all([self.family1])
+        db_session.commit()
+        q_str = '/api/protocol-family/{}/protocol/{}'.format(
+                self.family1.family_id, 999)
+        raw = self.app.post(q_str)
+        self.assertEqual(404, raw.status_code)
+
+    def test_delete_family_protocol_association_successful(self):
+        db_session.add_all([self.protocol1, self.family1])
+        db_session.commit()
+        pfp = ProtocolFamilyProtocol(protocol_id=self.protocol1.protocol_id,
+                                     family_id=self.family1.family_id)
+        db_session.add(pfp)
+        db_session.commit()
+        q_str = '/api/protocol-family/{}/protocol/{}'.format(
+                self.family1.family_id, self.protocol1.protocol_id)
+        self.app.delete(q_str)
+        pfp_change = ProtocolFamilyProtocol.query.first()
+        self.assertIsNone(pfp_change)
+
+    def test_delete_family_protocol_association_nonexistent_association(self):
+        db_session.add_all([self.protocol1, self.family1])
+        db_session.commit()
+        q_str = '/api/protocol-family/{}/protocol/{}'.format(
+                self.family1.family_id, self.protocol1.protocol_id)
+        raw = self.app.delete(q_str)
+        self.assertEqual(raw.status_code, 404)
 
 
 if __name__ == '__main__':

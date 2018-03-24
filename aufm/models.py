@@ -55,18 +55,22 @@ class Part(Base):
     __tablename__ = 'parts'
     part_id = Column('part_id', Integer, primary_key=True)
     element_id = Column('element_id', Integer)
+    part_name = Column('part_name', String(64))
     building_id = Column('building_id', Integer,
                          ForeignKey('buildings.building_id'))
 
-    def __init__(self, part_id=None, element_id=None, building_id=None):
+    def __init__(self, part_id=None, part_name=None, element_id=None,
+                 building_id=None):
         self.part_id = part_id
         self.element_id = element_id
+        self.part_name = part_name
         self.building_id = building_id
 
     def to_json(self):
         return {
             'part_id': self.part_id,
             'element_id': self.element_id,
+            'part_name': self.part_name,
             'building_id': self.building_id
         }
 
@@ -108,4 +112,42 @@ class PartProtocol(Base):
             'part_id': self.part_id,
             'protocol_id': self.protocol_id
         }
+
+
+class ProtocolFamily(Base):
+    __tablename__ = 'protocol_families'
+    family_id = Column('family_id', Integer, primary_key=True)
+    family_name = Column('family_name', String(64))
+
+    def __init__(self, family_id=None, family_name=None):
+        self.family_id = family_id
+        self.family_name = family_name
+
+    def to_json(self):
+        return {
+            'family_id': self.family_id,
+            'family_name': self.family_name
+        }
+
+
+class ProtocolFamilyProtocol(Base):
+    """Connects protocols to families"""
+    __tablename__ = 'protocol_family'
+    family_id = Column('family_id', Integer,
+                       ForeignKey('protocol_families.family_id'),
+                       primary_key=True)
+    protocol_id = Column('protocol_id', Integer,
+                         ForeignKey('protocols.protocol_id'),
+                         primary_key='True')
+
+    def __init__(self, family_id=None, protocol_id=None):
+        self.family_id = family_id
+        self.protocol_id = protocol_id
+
+    def to_json(self):
+        return {
+            'family_id': self.family_id,
+            'protocol_id': self.protocol_id
+        }
+
 

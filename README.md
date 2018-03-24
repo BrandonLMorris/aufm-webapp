@@ -39,3 +39,12 @@ and POST requests must content type `application/json`
 - `/api/building/<name_or_id>`
   - Methods: GET, PUT, DELETE
 
+
+### Protocol Families
+
+- `/api/protocol-family`
+  - Methods: GET, POST
+- `/api/protocol-family/<family_id>`
+  - Methods: GET, PUT, DELETE
+- `/api/protocol-family/<family_id>/protocol/<protocol_id>`
+  - Methods: POST, DELETE
