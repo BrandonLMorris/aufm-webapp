@@ -748,6 +748,30 @@ var AUFM = {
                 });
             };
         },
+        ProtocolFamily: function(data) {
+            this._family_id = parseInt(data.family_id);
+            this._family_name = data.family_value;
+
+            this.id = function() {
+                return this._family_id;
+            };
+
+            this.collection = function() {
+                return {
+                    id: this._family_id,
+                    name: this._family_name,
+                };
+            };
+
+            this.remove = function(callback) {
+                var self = this;
+                AUFM.Util.api({
+                  url: "protocol-family/" + self.id() + "/protocol/ "+ AUFM.UI.Protocols.elementID(),
+                  type: "DELETE",
+                  callback: callback,
+                });
+            };
+        },
     },
     Util: {
         template: function(template, data) {
@@ -768,6 +792,7 @@ var AUFM = {
                     params.callback({
                         error: text + " " + error,
                     });
+                    console.log(text + " " + error);
                 },
             });
         },
