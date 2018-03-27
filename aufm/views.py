@@ -35,6 +35,7 @@ def part_info(element_id):
             return _error('Unknown properties specified in request', 400)
         part.element_id = form.get('element_id')
         part.building_id = form.get('building_id')
+        part.part_name = form.get('part_name')
         db_session.add(part)
         db_session.commit()
     return jsonify(part.to_json())

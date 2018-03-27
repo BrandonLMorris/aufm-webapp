@@ -279,8 +279,10 @@ var AUFM = {
                     content: 'part_modal_template',
                     width: 35,
                     create: function(modal, item) {
-                        if(item)
-                            modal.find('#part_element_id').val(item.collection().value).focus();
+                        if(typeof item !== "undefined") {
+                            modal.find('#part_name').val(item.name()).focus();
+                            modal.find('#part_element_id').val(item.elementID());
+                        }
                     },
                     actions: [
                         {
@@ -288,6 +290,7 @@ var AUFM = {
                             title: {"create": "Add New Part", "edit": "Edit Part"},
                             click: function(modal, callback) {
                                 var elementID = modal.find("#part_element_id").val().trim();
+                                var partName = modal.find("#part_name").val().trim();
                                 if(elementID.length == 0)
                                     return; // todo: alert min characters.
                                 if(!$.isNumeric(elementID))
@@ -299,7 +302,8 @@ var AUFM = {
                                     type: modal.context == "create" ? "POST" : "PUT",
                                     data: { 
                                         "building_id": AUFM.UI.Parts.building.id(),
-                                        "element_id": elementID
+                                        "element_id": elementID,
+                                        "part_name": partName
                                      },
                                     callback: function(data) {
                                         var part = new AUFM.Schema.Part(data);
@@ -495,7 +499,7 @@ var AUFM = {
             card_options: {
                 id: "parts_card",
                 title: function() {
-                    return "Parts for " + AUFM.UI.Parts.building.collection().value
+                    return "Parts for " + AUFM.UI.Parts.building.collection().value;
                 },
                 search: true,
                 collection: {
@@ -538,7 +542,7 @@ var AUFM = {
                 this.building = building ? building : this.building;
                 var self = this;
                 $('.content-area').hide();
-                self.card = self.card ? self.card : AUFM.UI.Cards.create(this.card_options);
+                self.card = AUFM.UI.Cards.create(this.card_options);
                 self.parts = [];
                 AUFM.Util.api({
                     url: "building/" + self.building.id() + "/part",
@@ -577,7 +581,9 @@ var AUFM = {
             protocols: [],
             card_options: {
                 id: "protcols_card",
-                title: "Protocols",
+                title: function() {
+                    return "Protocols for " + AUFM.UI.Protocols.part.collection().value;
+                },
                 search: true,
                 collapsible: {
                     actions: [
@@ -610,7 +616,7 @@ var AUFM = {
                 this.part = part;
                 var self = this;
                 $('.content-area').hide();
-                self.card = self.card ? self.card : AUFM.UI.Cards.create(this.card_options);
+                self.card = AUFM.UI.Cards.create(this.card_options);
                 self.protocols = [];
                 AUFM.Util.api({
                     url: "part/" + self.part.elementID() + "/protocol",
@@ -700,6 +706,7 @@ var AUFM = {
         Part: function(data) {
             this._part_id = parseInt(data.part_id);
             this._element_id = parseInt(data.element_id);
+            this._part_name = data.part_name;
             this._building_id = parseInt(data.building_id);
 
             this.id = function() {
@@ -710,10 +717,14 @@ var AUFM = {
                 return this._element_id;
             };
 
+            this.name = function() {
+                return this._part_name;
+            };
+
             this.collection = function() {
                 return {
                     id: this._part_id,
-                    value: this._element_id,
+                    value: (this._part_name === null ? "[No Name]" : this._part_name) + " (ID " +this._element_id + ")",
                 };
             };
             this.remove = function(callback) {
