@@ -60,10 +60,12 @@ var AUFM = {
                         if(value == "")
                             card.find('.searchable').show();
                         else
-                            card.find('.searchable').each(function(index) {
+                            card.find('.searchable .search-value').each(function(index) {
                                 var ele = $(this);
                                 if(!ele.html().toLowerCase().includes(value))
-                                    ele.hide();
+                                    ele.parent().hide();
+                                else
+                                    ele.parent().show();
                             });
                     });
                     card.find('.search-input label').attr("for", options.id + "_search").html("Search " + title + "...");
@@ -223,7 +225,7 @@ var AUFM = {
                         }, "")
                     );
                     modal.find('.modal-footer .btn').click(function(e) {
-                        var id = $(this).attr("id");
+                        var id = $(this).attr("data-id");
                         var action = template.actions.find(function(a) { return a.id == id; });
                         var callback = options.actions ? options.actions[id] : undefined;
                         if(action)
@@ -337,7 +339,7 @@ var AUFM = {
                             click: function(modal) {
                                 modal.item.remove(function() {
                                     AUFM.UI.Parts.remove(modal.item.id());
-                                        modal.modal("close");
+                                    modal.modal("close");
                                 });
                             },
                         },
@@ -348,10 +350,15 @@ var AUFM = {
                     title: {"create": "Add New Protocol", "edit": "Edit Protocol"},
                     content: 'protocol_modal_template',
                     width: 35,
+                    create: function(modal, item) {
+                        if(typeof item !== "undefined") {
+                            modal.find('#protocol_value').val(item.collection().value).focus();
+                        }
+                    },
                     actions: [
                         {
                             id: "save_protocol",
-                            title: {"create": "Add New Part", "edit": "Edit Part"},
+                            title: {"create": "Add New Protocol", "edit": "Edit Protocol"},
                             click: function(modal, callback) {
                                 var protocolValue = modal.find("#protocol_value").val().trim();
                                 if(protocolValue.length == 0)
@@ -359,13 +366,20 @@ var AUFM = {
                                 if(AUFM.UI.Protocols.part == undefined)
                                     return; //todo: alert part unset.
                                 AUFM.Util.api({
-                                    url: "protocol",
-                                    type: "POST",
+                                    url: "protocol" + (modal.context == "edit" ? "/" + modal.item.id() : ""),
+                                    type: modal.context == "create" ? "POST" : "PUT",
                                     data: { 
                                         "value": protocolValue,
                                      },
                                     callback: function(protocolData) {
                                         var protocol = new AUFM.Schema.Protocol(protocolData);
+                                        if(modal.context == "edit") {
+                                            AUFM.UI.Protocols.replace(protocol);
+                                            if(callback)
+                                                callback();
+                                            modal.modal("close");
+                                            return;
+                                        }
                                         AUFM.Util.api({
                                             url: "part/" + AUFM.UI.Protocols.part.elementID() + "/protocol/" + protocol.id(),
                                             type: "POST",
@@ -386,6 +400,7 @@ var AUFM = {
                         {
                             id: "delete_protocol",
                             title: {"edit": "Delete Protocol"},
+                            color: "red",
                             click: function(modal) {
                                 modal.item.remove(function() {
                                     AUFM.UI.Protocols.remove(model.item.id());
@@ -599,9 +614,15 @@ var AUFM = {
                 collapsible: {
                     actions: [
                         {
-                            title: "Replace Protocol",
+                            title: "Edit Protocol",
                             id: "replace_protocol",
-                            click: function(protocol) {},
+                            click: function(protocol) {
+                                AUFM.UI.Modals.open({
+                                    template: "protocol_modal",
+                                    context: "edit",
+                                    item: protocol,
+                                });
+                            },
                         },
                         {
                             title: "Delete Protocol",
