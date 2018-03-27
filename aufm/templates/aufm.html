@@ -6,7 +6,7 @@
       <!-- CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/aufm.css') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/aufm.css') }}">
 
     <!-- Javascript -->
     <script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -19,7 +19,7 @@
     <div class="navbar-fixed">
         <nav>
             <div class="nav-wrapper blue darken-4">
-                <a href="#" class="brand-logo">AUFM</a>
+                <a href="/" class="brand-logo">AUFM</a>
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
                     <li class="active"><a href="sass.html">Home</a></li>
                     <li><a href="badges.html">Manage Users</a></li>
@@ -44,7 +44,7 @@
 
     <!-- Re-Usable Scripts and templates -->
     <script type="text/html" id="button_template">
-        <a class="waves-effect waves-light btn %color% %font_color%" id="%id%">%title%</a>
+        <a class="waves-effect waves-light btn %color% %font_color%" data-id="%id%">%title%</a>
     </script>
     <script type="text/html" id="breadcrumb_template">
         <a href="#!" class="breadcrumb" data-card="%card%">%title%</a>
@@ -74,7 +74,7 @@
     </script>
     <script type="text/html" id="collection_item_template">
         <a href="#!" class="collection-item searchable blue-text text-darken-4" data-id="%id%">
-            <span>%value%</span>
+            <span class="search-value">%value%</span>
             <div class="actions"></div>
         </a>
     </script>
@@ -83,7 +83,7 @@
     </script>
     <script type="text/html" id="collapsible_item_template">
         <li class="searchable" data-id="%id%">
-            <div class="collapsible-header">%value%</div>
+            <div class="collapsible-header search-value">%value%</div>
             <div class="collapsible-body">
                 %actions%
             </div>

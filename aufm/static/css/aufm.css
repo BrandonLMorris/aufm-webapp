@@ -95,8 +95,8 @@ textarea.materialize-textarea:focus:not([readonly]) {
     background-color: #f9f9f9;
 }
 
-.collection-item {
-    display: flex !important;
+.collection a.collection-item {
+    display: flex;
     justify-content: space-between;
 }
 .collection-item .actions {
