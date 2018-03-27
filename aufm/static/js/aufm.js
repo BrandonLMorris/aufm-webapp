@@ -150,6 +150,17 @@ var AUFM = {
                             }, "")
                         );
                         content.find('.collapsible').collapsible();
+                        content.find('.collapsible-body .btn').click(function() {
+                            var action = $(this).data("id");
+                            var collectionID = $(this).parents("li").first().data("id");
+                            var collection = card.collection.find(function(c){ return c.collection().id == collectionID; });
+                            if(!collection)
+                                return;
+                            options.collapsible.actions.forEach(function(a) {
+                                if(a.id == action)
+                                    a.click(collection);
+                            });
+                        });
                     };
                 } else if(options.content)
                     content.html(options.content);
@@ -589,10 +600,12 @@ var AUFM = {
                     actions: [
                         {
                             title: "Replace Protocol",
+                            id: "replace_protocol",
                             click: function(protocol) {},
                         },
                         {
                             title: "Delete Protocol",
+                            id: "delete_protocol",
                             color: "red",
                             click: function(protocol) {
                                 protocol.remove(function() {

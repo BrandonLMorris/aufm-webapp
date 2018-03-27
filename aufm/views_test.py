@@ -81,7 +81,7 @@ class ViewsTest(unittest.TestCase):
             self.assertEqual(resp[0], p2.to_json())
 
     def test_add_part(self):
-        p = Part(element_id=1234)
+        p = Part(element_id=1234,part_name='Test_Name')
         raw = self.app.post('/api/part', data=json.dumps(p.to_json()),
                             content_type='application/json')
         resp = json.loads(raw.get_data())

@@ -60,6 +60,7 @@ def get_or_add_parts():
             return _error('building_id does not exist', 404)
     part = Part(
         element_id=form['element_id'],
+        part_name=form['part_name'],
         building_id=form.get('building_id')
     )
     db_session.add(part)
