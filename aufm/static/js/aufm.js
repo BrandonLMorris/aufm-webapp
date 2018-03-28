@@ -153,6 +153,26 @@ var AUFM = {
                             }, "")
                         );
                         content.find('.collapsible').collapsible();
+                        // Load the sublist upon clicking
+                        // FIXME This is kinda jank; didn't see a better way
+                        if (options.sublist) {
+                            content.find('.collapsible-header').click(function() {
+                                var itemId = $(this).parent().data("id");
+                                AUFM.Util.api({
+                                    url: options.sublistEndpoint + itemId,
+                                    callback: function(data) {
+                                        subitems = data[options.sublistKey];
+                                        content.find('#collapsible-sublist').html(
+                                            '<ul class="collection">' +
+                                            subitems.reduce(function(str, item) {
+                                                return str + '<li class="collection-item">' + item.value + "</li>";
+                                            }, "") +
+                                            '</ul><br>'
+                                        );
+                                    }
+                                });
+                            });
+                        }
                         content.find('.collapsible-body .btn').click(function() {
                             var action = $(this).data("id");
                             var collectionID = $(this).parents("li").first().data("id");
@@ -724,6 +744,9 @@ var AUFM = {
                 id: "protcols_card",
                 title: "Protocol Families",
                 search: true,
+                sublist: true,
+                sublistEndpoint: "protocol-family/",
+                sublistKey: 'protocols',
                 collapsible: {
                     actions: [
                         {
@@ -752,6 +775,7 @@ var AUFM = {
                 },
                 actions: [{
                     title: "Create New Protocol Family",
+                    id: 'new_protocol_family',
                     click: function(e) {
                         AUFM.UI.Modals.open({
                             template: "protocol_family_modal",
