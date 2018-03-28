@@ -12,6 +12,7 @@ var AUFM = {
             //setup all required materialize initializations.
             $(".dropdown-button").dropdown();
             $('.modal').modal();
+            $("#protocol_families").click(AUFM.UI.ProtocolFamilies.open);
 
             AUFM.UI.Cards.initialize();
             AUFM.UI.Buildings.open();
@@ -170,8 +171,19 @@ var AUFM = {
                     throw "Invalid card content.";
 
                 if(options.actions) {
-                    card.find('.card-action .btn').html(options.actions.title).click(function(e) {
-                        options.actions.click(e);
+                    var added = card.find('.card-action').html(options.actions.reduce(function(str, item) {
+                        return str + AUFM.Util.template($('#button_template').html(), {
+                            title: item.title,
+                            id: item.id,
+                            color: item.color ? item.color : AUFM.Constants.DEFAULT_COLOR,
+                            font_color: item.font_color ? item.font_color : AUFM.Constants.DEFAULT_FONT_COLOR,
+                        });
+                    }, ""));
+                    added.find('a').click(function() {
+                        action = $(this).data("id");
+                        options.actions.forEach(function(a) {
+                            if (a.id == action) a.click();
+                        });
                     });
                 } else 
                     card.find('.card-actions').hide();
@@ -358,7 +370,8 @@ var AUFM = {
                     actions: [
                         {
                             id: "save_protocol",
-                            title: {"create": "Add New Protocol", "edit": "Edit Protocol"},
+                            title: {"create": "Add New Protocol", "edit": "Save Changes"},
+                            color: "green",
                             click: function(modal, callback) {
                                 var protocolValue = modal.find("#protocol_value").val().trim();
                                 if(protocolValue.length == 0)
@@ -398,15 +411,11 @@ var AUFM = {
                             },
                         },
                         {
-                            id: "delete_protocol",
-                            title: {"edit": "Delete Protocol"},
-                            color: "red",
+                            id: "cancel_changes",
+                            title: {"edit": "Cancel"},
                             click: function(modal) {
-                                modal.item.remove(function() {
-                                    AUFM.UI.Protocols.remove(model.item.id());
-                                    modal.modal("close");
-                                });
-                            },
+                                modal.modal("close");
+                            }
                         },
                     ]
                 },
@@ -472,14 +481,15 @@ var AUFM = {
                         },
                     },
                 },
-                actions: {
+                actions: [{
                     title: "Add Building",
+                    id: "add_building",
                     click: function(e) {
                         AUFM.UI.Modals.open({
                             template: "building_modal",
                         });
                     },
-                },
+                }],
             },
             card: undefined,
             open: function() {
@@ -554,14 +564,15 @@ var AUFM = {
                         },
                     },
                 },
-                actions: {
+                actions: [{
                     title: "Add New Part",
+                    id: "new_part",
                     click: function(e) {
                         AUFM.UI.Modals.open({
                             template: "part_modal",
                         });
                     },
-                },
+                }],
             },
             card: undefined,
             open: function(building) {
@@ -636,14 +647,31 @@ var AUFM = {
                         }
                     ],
                 },
-                actions: {
-                    title: "Attach Protocol",
-                    click: function(e) {
-                        AUFM.UI.Modals.open({
-                            template: "protocol_modal",
-                        });
+                actions: [
+                    {
+                        title: "New Protocol",
+                        id: "attach_protocol",
+                        click: function(e) {
+                            AUFM.UI.Modals.open({
+                                template: "protocol_modal",
+                            });
+                        },
                     },
-                },
+                    {
+                        title: "Add Protocols from Family",
+                        id: "from_family",
+                        click: function(e) {
+                            console.log('Adding from family not quite implemented yet');
+                        }
+                    },
+                    {
+                        title: "Add Existing Protocol",
+                        id: "add_existing",
+                        click: function(e) {
+                            console.log('Adding an existing protocol not quite implemented yet');
+                        }
+                    }
+                ],
             },
             card: undefined,
             open: function(part) {
@@ -689,6 +717,83 @@ var AUFM = {
                     this.card.populate(this.protocols);
                 }
             },
+        },
+        ProtocolFamilies: {
+            families: [],
+            card_options: {
+                id: "protcols_card",
+                title: "Protocol Families",
+                search: true,
+                collapsible: {
+                    actions: [
+                        {
+                            title: "Edit Protocol Family",
+                            id: "edit_family",
+                            click: function(family) {
+                                // FIXME
+                                AUFM.UI.Modals.open({
+                                    template: "protocol_family_modal",
+                                    context: "edit",
+                                    item: family,
+                                });
+                            },
+                        },
+                        {
+                            title: "Delete Protocol Family",
+                            id: "delete_family",
+                            color: "red",
+                            click: function(family) {
+                                family.remove(function() {
+                                    AUFM.UI.ProtocolFamilies.remove(family.id());
+                                });
+                            },
+                        }
+                    ],
+                },
+                actions: [{
+                    title: "Create New Protocol Family",
+                    click: function(e) {
+                        AUFM.UI.Modals.open({
+                            template: "protocol_family_modal",
+                        });
+                    },
+                }],
+            },
+            card: undefined,
+            open: function() {
+                var self = AUFM.UI.ProtocolFamilies;
+                $(".content-area").hide();
+                self.card = AUFM.UI.Cards.create(self.card_options);
+                self.families = [];
+                AUFM.Util.api({
+                    url: "protocol-family",
+                    callback: function(data) {
+                        if (data.length > 0) {
+                            data.forEach(function(f) {
+                                self.families.push(new AUFM.Schema.ProtocolFamily(f));
+                            });
+                        }
+                        self.card.populate(self.families);
+                        self.card.fadeIn();
+                        AUFM.UI.Breadcrumb.clear();
+                        AUFM.UI.Breadcrumb.push("Protocol Families");
+                    }
+                });
+            },
+            close: function() {
+                this.card.hide();
+            },
+            back: function() {
+                this.close();
+                this.part = undefined;
+                this.families = [];
+            },
+            add: function(family) {
+                this.families.push(family);
+                this.card.populate(this.protocols);
+            },
+            remove: function() {},
+            replace: function() {},
         },
     },
     /**
@@ -795,7 +900,7 @@ var AUFM = {
         },
         ProtocolFamily: function(data) {
             this._family_id = parseInt(data.family_id);
-            this._family_name = data.family_value;
+            this._family_name = data.family_name;
 
             this.id = function() {
                 return this._family_id;
@@ -804,7 +909,7 @@ var AUFM = {
             this.collection = function() {
                 return {
                     id: this._family_id,
-                    name: this._family_name,
+                    value: this._family_name,
                 };
             };
 
