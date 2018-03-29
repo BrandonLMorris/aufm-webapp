@@ -286,15 +286,17 @@ def add_remove_protocol_family_association(family_id, protocol_id):
     protocol = Protocol.query.filter(Protocol.protocol_id==protocol_id).first()
     if protocol is None:
         return _error('Protocol does not exists', 404)
+    pfp = ProtocolFamilyProtocol.query.filter(
+            ProtocolFamilyProtocol.family_id==family.family_id,
+            ProtocolFamilyProtocol.protocol_id==protocol.protocol_id).first()
     if request.method == 'POST':
+        if pfp is not None:
+            return _error('Protocol already exists in specified family', 401)
         pfp = ProtocolFamilyProtocol(family.family_id, protocol.protocol_id)
         db_session.add(pfp)
         db_session.commit()
         return jsonify(pfp.to_json())
     # Must be a delete
-    pfp = ProtocolFamilyProtocol.query.filter(
-            ProtocolFamilyProtocol.family_id==family.family_id,
-            ProtocolFamilyProtocol.protocol_id==protocol.protocol_id).first()
     if pfp is None:
         return _error('Protocol does not exist in specified family', 404)
     to_delete = pfp.to_json()

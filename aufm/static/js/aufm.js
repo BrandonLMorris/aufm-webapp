@@ -234,6 +234,7 @@ var AUFM = {
                 if(template.width)
                     modal.css("width", template.width + "%");
                 modal.item = options.item;
+                modal.action = options.action;
                 options.context = options.context ? options.context : "create";
                 modal.context = options.context;
                 if(template.title) {
@@ -266,6 +267,24 @@ var AUFM = {
                 }
                 if(template.create)
                     template.create(modal, options.item);
+                // Setting up searching through content.
+                if(template.search) {
+                    console.log('Setting up search maybe?');
+                    modal.find('.search-input input').attr("id", options.id + "_search").on('input', function(e) {
+                        var value = $(this).val().toLowerCase().trim();
+                        if(value === "")
+                            modal.find('.searchable').show();
+                        else
+                            modal.find('.searchable .search-value').each(function(index) {
+                                var ele = $(this);
+                                if(!ele.html().toLowerCase().includes(value))
+                                    ele.parent().hide();
+                                else
+                                    ele.parent().show();
+                            });
+                    });
+                    modal.find('.search-input label').attr("for", options.id + "_search").html("Search...");
+                }
                 Materialize.updateTextFields();
                 modal.modal('open');
             },
@@ -439,6 +458,71 @@ var AUFM = {
                         },
                     ]
                 },
+                protocol_list_modal: {
+                    id: "protocol_list_modal",
+                    title: {
+                        "add_existing": "Add Existing Protocol",
+                        "add_to_family": "Add Protocol to Family"
+                    },
+                    search: true,
+                    content: 'protocol_list_modal_template',
+                    width: 70,
+                    create: function(modal, item) {
+                        protocols = [];
+                        AUFM.Util.api({
+                            url: "protocol",
+                            callback: function(data) {
+                                data.forEach(function(b) {
+                                    protocols.push(new AUFM.Schema.Protocol(b));
+                                });
+                                modal.find('#protocol_list').html(AUFM.UI.Cards.templates.collection);
+                                modal.find('.collection').html(
+                                    protocols.reduce(function(str, item) {
+                                        if(!item.collection) return str;
+                                        return str + AUFM.Util.template(AUFM.UI.Cards.templates.collection_item, item.collection());
+                                    }, "")
+                                );
+                                modal.find('.collection-item').click(function(e) {
+                                    var id = $(this).data("id");
+                                    var item = protocols.find((c) => { return c.id() == id; });
+                                    modal.action(item);
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                });
+                            },
+                        });
+                    },
+                    actions: [
+                    
+                    ]
+                },
+                protocol_family_list_modal: {
+                    id: "protocol_family_list_modal",
+                    title: {
+                        "add_from_family": "Add Protocols from Family",
+                    },
+                    search: true,
+                    content: 'protocol_family_list_modal_template',
+                    width: 70,
+                    create: function(modal, item) {
+                        families = [];
+                        AUFM.Util.api({
+                            url: "protocol-family",
+                            callback: function(data) {
+                                data.forEach(function(b) {
+                                    families.push(new AUFM.Schema.ProtocolFamily(b));
+                                });
+                                modal.find('#family_list').html(AUFM.UI.Cards.templates.collection);
+                                modal.find('.collection').html(
+                                    families.reduce(function(str, item) {
+                                        if(!item.collection) return str;
+                                        return str + AUFM.Util.template(AUFM.UI.Cards.templates.collection_item, item.collection());
+                                    }, "")
+                                );
+                            },
+                        });
+                    }
+                }
             },
         },
         Breadcrumb: {
@@ -667,8 +751,7 @@ var AUFM = {
                         }
                     ],
                 },
-                actions: [
-                    {
+                actions: [{
                         title: "New Protocol",
                         id: "attach_protocol",
                         click: function(e) {
@@ -681,14 +764,20 @@ var AUFM = {
                         title: "Add Protocols from Family",
                         id: "from_family",
                         click: function(e) {
-                            console.log('Adding from family not quite implemented yet');
+                            AUFM.UI.Modals.open({
+                                template: "protocol_family_list_modal",
+                                context: "add_from_family",
+                            });
                         }
                     },
                     {
                         title: "Add Existing Protocol",
                         id: "add_existing",
                         click: function(e) {
-                            console.log('Adding an existing protocol not quite implemented yet');
+                            AUFM.UI.Modals.open({
+                                template: "protocol_list_modal",
+                                context: "add_existing",
+                            });
                         }
                     }
                 ],
@@ -758,6 +847,26 @@ var AUFM = {
                                     template: "protocol_family_modal",
                                     context: "edit",
                                     item: family,
+                                });
+                            },
+                        },
+                        {
+                            title: "Add Protocol to Family",
+                            id: "add_to_family",
+                            click: function(family) {
+                                AUFM.UI.Modals.open({
+                                    template: "protocol_list_modal",
+                                    context: "add_to_family",
+                                    action: function(protocol) {
+                                        AUFM.Util.api({
+                                            url: 'protocol-family/' + family.id() + '/protocol/' + protocol.id(),
+                                            type: 'POST',
+                                            // data: {},
+                                            callback: function(data) {
+                                                // TODO: Reload the sublist when done
+                                            }
+                                        })
+                                    }
                                 });
                             },
                         },
