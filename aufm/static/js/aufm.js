@@ -269,7 +269,6 @@ var AUFM = {
                     template.create(modal, options.item);
                 // Setting up searching through content.
                 if(template.search) {
-                    console.log('Setting up search maybe?');
                     modal.find('.search-input input').attr("id", options.id + "_search").on('input', function(e) {
                         var value = $(this).val().toLowerCase().trim();
                         if(value === "")
@@ -519,6 +518,14 @@ var AUFM = {
                                         return str + AUFM.Util.template(AUFM.UI.Cards.templates.collection_item, item.collection());
                                     }, "")
                                 );
+                                // Add the action for clicking on each collection item
+                                modal.find('.collection-item').click(function(e) {
+                                    var id = $(this).data("id");
+                                    var item = families.find((c) => { return c.id() == id; });
+                                    modal.action(item);
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                });
                             },
                         });
                     }
@@ -765,8 +772,27 @@ var AUFM = {
                         id: "from_family",
                         click: function(e) {
                             AUFM.UI.Modals.open({
+                                // TODO: Reload part list when closing
                                 template: "protocol_family_list_modal",
                                 context: "add_from_family",
+                                action: function(family) {
+                                    // Add all the protocols from this family to the part
+                                    var eid = AUFM.UI.Protocols.part.elementID();
+                                    // Get the protocols associated with the family
+                                    AUFM.Util.api({
+                                        url: 'protocol-family/' + family.id(),
+                                        callback: function(data) {
+                                            // Add each protocol to the part
+                                            data.protocols.forEach(function(p) {
+                                                AUFM.Util.api({
+                                                    url: 'part/' + eid + '/protocol/' + p.protocol_id,
+                                                    type: 'POST',
+                                                    callback: function(data) {}
+                                                });
+                                            });
+                                        }
+                                    });
+                                }
                             });
                         }
                     },
@@ -777,6 +803,16 @@ var AUFM = {
                             AUFM.UI.Modals.open({
                                 template: "protocol_list_modal",
                                 context: "add_existing",
+                                action: function(protocol) {
+                                    var eid = AUFM.UI.Protocols.part.elementID();
+                                    AUFM.Util.api({
+                                        url: 'part/' + eid + '/protocol/' + protocol.id(),
+                                        type: 'POST',
+                                        callback: function(data) {
+                                            // TODO: Reload protocols list
+                                        }
+                                    });
+                                }
                             });
                         }
                     }

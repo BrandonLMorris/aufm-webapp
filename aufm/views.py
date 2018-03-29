@@ -94,15 +94,17 @@ def connect_part_protocol(element_id, protocol_id):
     protocol = Protocol.query.filter(Protocol.protocol_id==protocol_id).first()
     if protocol is None:
         return _error('Protocol protocol_id does not exist', 404)
+    pp = (PartProtocol.query.filter(
+            PartProtocol.part_id==part.part_id,
+            PartProtocol.protocol_id==protocol_id).first())
     if request.method == 'POST':
+        if pp is not None:
+            return _error('Protocol is already associated with that part', 400)
         pp = PartProtocol(part_id=part.part_id, protocol_id=protocol_id)
         db_session.add(pp)
         db_session.commit()
         return jsonify(pp.to_json())
     # Must be a delete
-    pp = (PartProtocol.query.filter(
-            PartProtocol.part_id==part.part_id,
-            PartProtocol.protocol_id==protocol_id).first())
     if pp is None:
         return _error('Part protocol relationship does not exist', 404)
     to_delete = pp.to_json()
@@ -291,7 +293,7 @@ def add_remove_protocol_family_association(family_id, protocol_id):
             ProtocolFamilyProtocol.protocol_id==protocol.protocol_id).first()
     if request.method == 'POST':
         if pfp is not None:
-            return _error('Protocol already exists in specified family', 401)
+            return _error('Protocol already exists in specified family', 400)
         pfp = ProtocolFamilyProtocol(family.family_id, protocol.protocol_id)
         db_session.add(pfp)
         db_session.commit()
