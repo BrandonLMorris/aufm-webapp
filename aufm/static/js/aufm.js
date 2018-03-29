@@ -156,19 +156,44 @@ var AUFM = {
                         // Load the sublist upon clicking
                         // FIXME This is kinda jank; didn't see a better way
                         if (options.sublist) {
+                            sublist = options.sublist;
                             content.find('.collapsible-header').click(function() {
                                 var itemId = $(this).parent().data("id");
                                 AUFM.Util.api({
-                                    url: options.sublistEndpoint + itemId,
+                                    url: sublist.endpoint + itemId,
                                     callback: function(data) {
-                                        subitems = data[options.sublistKey];
+                                        subitems = data[sublist.key].map(function(e) {return sublist.schema(e);});
                                         content.find('#collapsible-sublist').html(
                                             '<ul class="collection">' +
                                             subitems.reduce(function(str, item) {
-                                                return str + '<li class="collection-item">' + item.value + "</li>";
+                                                // FIXME I'M DYING
+                                                i = item.collection();
+                                                return str + '<li class="collection-item" data-id="' + i.id + '">' + i.value + '<div class="actions"></div></li>';
                                             }, "") +
                                             '</ul><br>'
                                         );
+                                        if (options.sublist.actions) {
+                                            content.find('.collection-item').each(function() {
+                                                // Need to template out collection_action_template
+                                                var container = $(this).find('.actions');
+                                                for(action in sublist.actions) {
+                                                    container.append(AUFM.Util.template(self.templates.collection_action, {
+                                                        action: action,
+                                                        icon: sublist.actions[action].icon,
+                                                    }));
+                                                }
+                                            });
+                                            content.find('.collection-item .action').click(function(e) {
+                                                var action = $(this).data("action");
+                                                var collectionID = $(this).parents('.collection-item').first().data("id");
+                                                var superID = $(this).parents('.active').first().data('id');
+                                                var subItem = subitems.find((c) => { return c.id() == collectionID; });
+                                                var superItem = card.collection.find((c) => {return c.id() == superID;});
+                                                sublist.actions[action].click(superItem, subItem);
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                            });
+                                        }
                                     }
                                 });
                             });
@@ -478,7 +503,6 @@ var AUFM = {
                             title: {"create": "Save New Protocol Family", "edit": "Save Changes"},
                             color: "green",
                             click: function(modal, callback) {
-                                // TODO Add editing
                                 var familyValue = modal.find("#protocol_family_value").val().trim();
                                 if(familyValue.length === 0) return;
                                 AUFM.Util.api({
@@ -916,9 +940,25 @@ var AUFM = {
                 id: "protcols_card",
                 title: "Protocol Families",
                 search: true,
-                sublist: true,
-                sublistEndpoint: "protocol-family/",
-                sublistKey: 'protocols',
+                sublist: {
+                    endpoint: "protocol-family/",
+                    key: 'protocols',
+                    id: "protocol_id",
+                    schema: function(e) {return new AUFM.Schema.Protocol(e);},
+                    actions: {
+                        remove: {
+                            icon: "delete",
+                            click: function(family, protocol) {
+                                console.log('Trashcan hit');
+                                console.log(family);
+                                console.log(protocol);
+                                family.removeProtocol(protocol, function() {
+                                    // FIXME: Should remove the protocol from the sublist
+                                });
+                            },
+                        },
+                    },
+                },
                 collapsible: {
                     actions: [
                         {
@@ -1143,6 +1183,14 @@ var AUFM = {
                   url: "protocol-family/" + self.id(),
                   type: "DELETE",
                   callback: callback,
+                });
+            };
+            this.removeProtocol = function(toRemove, callback) {
+                var self = this;
+                AUFM.Util.api({
+                    url: 'protocol-family/' + self.id() + '/protocol/' + toRemove.id(),
+                    type: "DELETE",
+                    callback: callback,
                 });
             };
         },
