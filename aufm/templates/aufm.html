@@ -21,8 +21,9 @@
             <div class="nav-wrapper blue darken-4">
                 <a href="/" class="brand-logo">AUFM</a>
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
-                    <li class="active"><a href="sass.html">Home</a></li>
+                    <li class="active"><a href="/">Home</a></li>
                     <li><a href="badges.html">Manage Users</a></li>
+                    <li id="protocol_families"><a>Protocol Families</a></li>
                     <li><a class="dropdown-button" href="#!" data-beloworigin="true" data-activates="settings_dropdown">Allen Kinzalow<i class="material-icons right">arrow_drop_down</i></a></li>
                 </ul>
             </div>
@@ -30,9 +31,7 @@
     </div>
     <div class="row breadcrumb-row no-margin-bottom">
         <div class="col s8">
-            <div clas="card">
-                    <div id="card_breadcrumb"></div>
-            </div>
+            <div id="card_breadcrumb"></div>
         </div>
     </div>
     <div id="content_area"></div>
@@ -85,6 +84,8 @@
         <li class="searchable" data-id="%id%">
             <div class="collapsible-header search-value">%value%</div>
             <div class="collapsible-body">
+                <div id="collapsible-sublist">
+                </div>
                 %actions%
             </div>
         </li>
@@ -160,6 +161,58 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </script> 
+    <script type="text/html" id="protocol_family_modal_template">
+        <div class="row">
+            <form class="col s12">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <textarea id="protocol_family_value" class="materialize-textarea"></textarea>
+                        <label for="protocol_family_value">Protocol Family Name</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </script> 
+    <script type="text/html" id="protocol_list_modal_template">
+        <div class="row">
+            <div class="col s11">
+                <div class="row search">
+                    <div class="search-input input-field col s12">
+                        <input type="text" class=" validate">
+                        <label class="active"></label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="content-container">
+                      <div class="">
+                        <ul class="collection" id="protocol_list">
+                        </ul>
+                      </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </script> 
+    <script type="text/html" id="protocol_family_list_modal_template">
+        <div class="row">
+            <div class="col s11">
+                <div class="row search">
+                    <div class="search-input input-field col s12">
+                        <input type="text" class=" validate">
+                        <label class="active"></label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="content-container">
+                      <div class="">
+                        <ul class="collection" id="protocol_family_list">
+                        </ul>
+                      </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </script> 
   </body>
