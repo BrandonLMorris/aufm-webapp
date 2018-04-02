@@ -3,6 +3,41 @@ var AUFM = {
         DEFAULT_COLOR: "blue darken-4",
         DEFAULT_FONT_COLOR: "" // blank = default materialize
     },
+    setup: function() {
+        AUFM.Schema.setup();
+        AUFM.UI.initialize();
+        AUFM.Routing.setup();
+    },
+    /**
+     * Routing library implementation.
+     */
+    Routing: {
+        setup: function() {
+            routie({
+                'buildings': function() {
+                    AUFM.UI.Buildings.open();
+                },
+                'parts/:building_id': function(building_id) {
+                    building_id = parseInt(building_id);
+                    AUFM.UI.Buildings.close();
+                    var building = AUFM.UI.Buildings.buildings.find(b => {return b.id() == building_id});
+                    building = building ? building : building_id;
+                    AUFM.UI.Parts.open(building);
+                },
+                'protocols/:part_id': function(element_id) {
+                    element_id = parseInt(element_id);
+                    AUFM.UI.Parts.close();
+                    var part = AUFM.UI.Parts.parts.find(p => {return p.elementID() == element_id});
+                    if(!part) {
+                        AUFM.Schema.Part.get(element_id, part => {
+                            AUFM.UI.Protocols.open(part);
+                        });
+                    } else
+                        AUFM.UI.Protocols.open(part);
+                },
+            });
+        },
+    },
     /*
      * An collection of UI specific utilities and managing the 
      *  data that should be binded with these UI elements.
@@ -15,7 +50,8 @@ var AUFM = {
             $("#protocol_families").click(AUFM.UI.ProtocolFamilies.open);
 
             AUFM.UI.Cards.initialize();
-            AUFM.UI.Buildings.open();
+            AUFM.UI,this.Buildings.open();
+            AUFM.Routing.setup();
         },
         /*
          * Cards are dynamically created by passing in a set
@@ -639,8 +675,7 @@ var AUFM = {
                 search: true,
                 collection: {
                     click: function(building) {
-                        AUFM.UI.Buildings.close();
-                        AUFM.UI.Parts.open(building);
+                        routie('parts/' + building.id());
                     },
                     actions: {
                         edit: {
@@ -692,7 +727,8 @@ var AUFM = {
                 });
             },
             close: function() {
-                this.card.hide();
+                if(this.card)
+                    this.card.hide();
             },
             //todo next cycle: abstract the following
             add: function(building) {
@@ -717,13 +753,13 @@ var AUFM = {
             card_options: {
                 id: "parts_card",
                 title: function() {
-                    return "Parts for " + AUFM.UI.Parts.building.collection().value;
+                    return AUFM.UI.Parts.building && AUFM.UI.Parts.building.id ? 
+                        "Parts for " + AUFM.UI.Parts.building.collection().value : "";
                 },
                 search: true,
                 collection: {
                     click:function(part) {
-                        AUFM.UI.Parts.close();
-                        AUFM.UI.Protocols.open(part);
+                        routie('protocols/' + part.elementID());
                     },
                     actions: {
                         edit: {
@@ -763,9 +799,13 @@ var AUFM = {
                 $('.content-area').hide();
                 self.card = AUFM.UI.Cards.create(this.card_options);
                 self.parts = [];
+                var bulding_id = Number.isInteger(this.building) ? this.building : this.building.id();
                 AUFM.Util.api({
-                    url: "building/" + self.building.id() + "/part",
+                    url: "building/" + bulding_id + "/part",
                     callback: function(data) {
+                        if(!self.building.id)
+                            self.building = new AUFM.Schema.Building(data);
+                        self.parts = [];
                         data.parts.forEach(function(p) {
                             self.parts.push(new AUFM.Schema.Part(p));
                         });
@@ -776,7 +816,8 @@ var AUFM = {
                 });
             },
             close: function() {
-                this.card.hide();
+                if(this.card)
+                    this.card.hide();
             },
             //todo next cycle: abstract the following
             add: function(part) {
@@ -801,7 +842,8 @@ var AUFM = {
             card_options: {
                 id: "protcols_card",
                 title: function() {
-                    return "Protocols for " + AUFM.UI.Protocols.part.collection().value;
+                    return AUFM.UI.Protocols.part && AUFM.UI.Protocols.part.id ? 
+                        "Protocols for " + AUFM.UI.Protocols.part.collection().value : "";
                 },
                 search: true,
                 collapsible: {
@@ -896,9 +938,11 @@ var AUFM = {
                 $('.content-area').hide();
                 self.card = AUFM.UI.Cards.create(this.card_options);
                 self.protocols = [];
+                var part_id = Number.isInteger(part) ? part : self.part.elementID();
                 AUFM.Util.api({
-                    url: "part/" + self.part.elementID() + "/protocol",
+                    url: "part/" + part_id + "/protocol",
                     callback: function(data) {
+                        self.protocols = [];
                         data.protocols.forEach(function(p) {
                             self.protocols.push(new AUFM.Schema.Protocol(p));
                         });
@@ -909,7 +953,8 @@ var AUFM = {
                 });
             },
             close: function() {
-                this.card.hide();
+                if(this.card)
+                    this.card.hide();
             },
             back: function() {
                 this.close();
@@ -949,9 +994,6 @@ var AUFM = {
                         remove: {
                             icon: "delete",
                             click: function(family, protocol) {
-                                console.log('Trashcan hit');
-                                console.log(family);
-                                console.log(protocol);
                                 family.removeProtocol(protocol, function() {
                                     // FIXME: Should remove the protocol from the sublist
                                 });
@@ -1037,7 +1079,8 @@ var AUFM = {
                 });
             },
             close: function() {
-                this.card.hide();
+                if(this.card)
+                    this.card.hide();
             },
             back: function() {
                 this.close();
@@ -1194,6 +1237,24 @@ var AUFM = {
                 });
             };
         },
+        setup: function() {
+            this.Building.get = function(id, callback) {
+                AUFM.Util.api({
+                    url: "building/" + id,
+                    callback: function(data) {
+                        callback(new AUFM.Schema.Building(data));
+                    },
+                });
+            };
+            this.Part.get = function(element_id, callback) {
+                AUFM.Util.api({
+                    url: "part/" + element_id,
+                    callback: function(data) {
+                        callback(new AUFM.Schema.Part(data));
+                    },
+                });
+            };
+        },
     },
     Util: {
         template: function(template, data) {
@@ -1222,5 +1283,5 @@ var AUFM = {
 };
 
 $(document).ready(function(e) {
-    AUFM.UI.initialize();
+    AUFM.setup();
 });
