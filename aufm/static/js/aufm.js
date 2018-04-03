@@ -15,6 +15,7 @@ var AUFM = {
         setup: function() {
             routie({
                 'buildings': function() {
+                    AUFM.UI.Breadcrumb.clear();
                     AUFM.UI.Buildings.open();
                 },
                 'parts/:building_id': function(building_id) {
@@ -23,6 +24,7 @@ var AUFM = {
                     var building = AUFM.UI.Buildings.buildings.find(b => {return b.id() == building_id});
                     building = building ? building : building_id;
                     AUFM.UI.Parts.open(building);
+                    AUFM.UI.Breadcrumb.navigate("Parts");
                 },
                 'protocols/:part_id': function(element_id) {
                     element_id = parseInt(element_id);
@@ -36,6 +38,9 @@ var AUFM = {
                         AUFM.UI.Protocols.open(part);
                 },
             });
+            // default
+            if(window.location.hash == "" || window.location.hash == "#!")
+                routie('buildings');
         },
     },
     /*
@@ -50,8 +55,6 @@ var AUFM = {
             $("#protocol_families").click(AUFM.UI.ProtocolFamilies.open);
 
             AUFM.UI.Cards.initialize();
-            AUFM.UI,this.Buildings.open();
-            AUFM.Routing.setup();
         },
         /*
          * Cards are dynamically created by passing in a set
@@ -661,6 +664,11 @@ var AUFM = {
                 breadcrumb.nextAll('.breadcrumb').remove();
                 if(AUFM.UI[card])
                     AUFM.UI[card].open();
+            },
+            navigate: function(card) {
+                var breadcrumb = $('.breadcrumb[data-card="' + card + '"]');
+                AUFM.UI.Breadcrumb.breadcrumb_stack.splice(breadcrumb.index() + 1);
+                breadcrumb.nextAll('.breadcrumb').remove();
             },
         },
         Users: {
