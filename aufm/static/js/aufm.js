@@ -37,6 +37,9 @@ var AUFM = {
                     } else
                         AUFM.UI.Protocols.open(part);
                 },
+                'protocol-families': function() {
+                    AUFM.UI.ProtocolFamilies.open();
+                },
             });
             // default
             if(window.location.hash == "" || window.location.hash == "#!")
@@ -52,7 +55,6 @@ var AUFM = {
             //setup all required materialize initializations.
             $(".dropdown-button").dropdown();
             $('.modal').modal();
-            $("#protocol_families").click(AUFM.UI.ProtocolFamilies.open);
 
             AUFM.UI.Cards.initialize();
         },
