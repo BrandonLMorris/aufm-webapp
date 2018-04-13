@@ -2,6 +2,12 @@ from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
 from flask import jsonify, request, render_template
+from flask_security import login_required
+
+@app.route('/auth-test')
+@login_required
+def auth_test():
+    return jsonify({'status':'success'})
 
 
 @app.route('/api/user', methods=['GET', 'POST'])
