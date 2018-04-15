@@ -1,6 +1,7 @@
 from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
+import bcrypt
 from flask import jsonify, request, render_template
 from flask_login import login_required, login_user
 
@@ -13,8 +14,7 @@ def login():
     user = User.query.filter(User.email==form['email']).first()
     if user is None:
         return _error('Invalid login credentials', 400)
-    # FIXME: Need to salt 'n hash this bad boi
-    if user.password == form['password']:
+    if bcrypt.checkpw(form['password'], user.password):
         login_user(user)
         return jsonify({'status': 'Logged in successfully'})
     return _error('Invalid login credentials', 400)
@@ -26,11 +26,22 @@ def auth_test():
     return jsonify({'status':'success'})
 
 
-@app.route('/api/user', methods=['GET', 'POST'])
-def get_all_users():
-    if request.method == 'GET':
-        return jsonify([u.to_json() for u in User.query.all()])
-    return jsonify({'Error': 'Not yet implemented'}), 501
+@app.route('/api/user', methods=['POST'])
+def create_new_user():
+    if not request.is_json:
+        return _error('Request must be JSON type', 400)
+    form = request.get_json()
+    hashed = bcrypt.hashpw(form['password'].encode('utf-8'), bcrypt.gensalt())
+    user = User.query.filter(User.email == form['email']).all()
+    if user is not None:
+        return _error('An account with that email already exists', 400)
+    new_user = User(
+            first_name=form.get('first_name'), last_name=form.get('last_name'),
+            email=form['email'], password=hashed
+    )
+    db_session.add(new_user)
+    db_session.commit()
+    return jsonify(new_user.to_json())
 
 
 @app.route('/api/part/<int:element_id>', methods=['GET', 'PUT', 'DELETE'])
