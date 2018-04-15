@@ -31,7 +31,6 @@ security = Security(app, user_datastore)
 def remove_db_connection(exception=None):
     database.db_session.remove()
 
-
 # @app.before_first_request
 # def create_user():
 #     user_datastore.create_user(email='tester@aufm.auburn.edu',
