@@ -1,12 +1,9 @@
-from flask_security import Security, SQLAlchemySessionUserDatastore
+from flask_login import LoginManager
 
 from aufm import app, database, models
 
 
 app.config.from_object(__name__)
-
-app.logger.setLevel(1)
-print(app.logger)
 
 # Load default config and override config from an environment variable
 app.config.update(dict(
@@ -23,17 +20,18 @@ app.config.from_envvar('AUFM_SETTINGS', silent=True)
 database.init_db()
 
 
-user_datastore = SQLAlchemySessionUserDatastore(database.db_session, models.User,
-                                                models.Role)
-security = Security(app, user_datastore)
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return models.User.query.filter(models.User.id == user_id).first()
 
 @app.teardown_appcontext
 def remove_db_connection(exception=None):
     database.db_session.remove()
 
-# @app.before_first_request
-# def create_user():
-#     user_datastore.create_user(email='tester@aufm.auburn.edu',
-#                                password='super-secret-password')
-#     database.db_session.commit()
+
+if __name__ == '__main__':
+    app.run()
 

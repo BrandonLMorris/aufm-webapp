@@ -1,28 +1,6 @@
-from flask_security import UserMixin, RoleMixin
-from sqlalchemy import Column, Integer, String, SmallInteger, ForeignKey, Boolean, DateTime
-from sqlalchemy.orm import relationship, backref
+from flask_login import UserMixin
+from sqlalchemy import Column, Integer, String, SmallInteger, ForeignKey, Boolean
 from aufm.database import Base
-
-
-class RolesUsers(Base):
-    __tablename__ = 'roles_users'
-    id = Column(Integer(), primary_key=True)
-    user_id = Column('user_id', Integer(), ForeignKey('users.user_id'))
-    role_id = Column('role_id', Integer(), ForeignKey('roles.role_id'))
-
-
-class Role(Base, RoleMixin):
-    __tablename__ = 'roles'
-    role_id = Column('role_id', Integer(), primary_key=True)
-    name = Column(String(64), primary_key=True)
-    description = Column(String(255))
-
-    def to_json(self):
-        return {
-            'role_id': self.role_id,
-            'name': self.role_name,
-            'description': self.description
-        }
 
 
 class User(Base, UserMixin):
@@ -33,23 +11,13 @@ class User(Base, UserMixin):
     last_name = Column('last_name', String(50))
     email = Column('email', String(128))
     password = Column('password', String(64))
-    roles = relationship('Role', secondary='roles_users',
-                         backref=backref('users', lazy='dynamic'))
-    active = Column(Boolean())
-    last_login_at = Column(DateTime())
-    current_login_at = Column(DateTime())
-    last_login_ip = Column(String(100))
-    current_login_ip = Column(String(100))
-    login_count = Column(Integer)
-    confirmed_at = Column(DateTime())
 
-    # def __init__(self, first_name=None, last_name=None, email=None,
-    #              password=None, permissions=None):
-    #     self.first_name = first_name
-    #     self.last_name = last_name
-    #     self.email = email
-    #     self.password = password
-    #     self.permissions = permissions
+    def __init__(self, first_name=None, last_name=None, email=None,
+                 password=None, permissions=None):
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.password = password
 
     def __repr__(self):
         return '<User {} {}>'.format(self.first_name, self.last_name)

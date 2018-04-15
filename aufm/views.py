@@ -2,7 +2,23 @@ from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
 from flask import jsonify, request, render_template
-from flask_security import login_required
+from flask_login import login_required, login_user
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    if not request.is_json:
+        return _error('Request must be JSON type', 400)
+    form = request.get_json()
+    user = User.query.filter(User.email==form['email']).first()
+    if user is None:
+        return _error('Invalid login credentials', 400)
+    # FIXME: Need to salt 'n hash this bad boi
+    if user.password == form['password']:
+        login_user(user)
+        return jsonify({'status': 'Logged in successfully'})
+    return _error('Invalid login credentials', 400)
+
 
 @app.route('/auth-test')
 @login_required
