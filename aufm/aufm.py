@@ -1,5 +1,6 @@
 import bcrypt
 from flask_login import LoginManager
+from flask_mail import Mail
 
 from aufm import app, database, models
 from aufm.models import User
@@ -9,21 +10,27 @@ app.config.from_object(__name__)
 
 # Load default config and override config from an environment variable
 app.config.update(dict(
-    # DATABASE=os.path.join(app.root_path, 'flaskr.db'),
     SECRET_KEY='development key',
     USERNAME='admin',
     PASSWORD='default',
     DEBUG=True,
     TEMPLATES_AUTO_RELOAD=True,
-    SECURITY_PASSWORD_SALT='super-super-salty'
+    MAIL_SERVER='smtp.gmail.com',
+    MAIL_PORT=465,
+    MAIL_USERNAME='do.not.reply.aufm@gmail.com',
+    MAIL_PASSWORD='group2-aufm',
+    MAIL_USE_TLS=False,
+    MAIL_USE_SSL=True
 ))
 app.config.from_envvar('AUFM_SETTINGS', silent=True)
 
 database.init_db()
 
-
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+mail = Mail(app)
+app.mail = mail
 
 @login_manager.user_loader
 def load_user(user_id):

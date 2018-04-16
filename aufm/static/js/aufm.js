@@ -40,6 +40,9 @@ var AUFM = {
                 'protocol-families': function() {
                     AUFM.UI.ProtocolFamilies.open();
                 },
+                'password-reset/:reset_token': function(reset_token) {
+                    AUFM.UI.PasswordReset.open(reset_token);
+                },
             });
             // default
             if(window.location.hash == "" || window.location.hash == "#!")
@@ -1176,6 +1179,51 @@ var AUFM = {
                     this.card.populate(this.families);
                 }
             },
+        },
+        PasswordReset: {
+            card_options: {
+                id: "password_reset_card",
+                title: "Reset Password",
+                actions: [{
+                    title: "Reset Password",
+                    id: 'password_reset_button',
+                    click: function (e) {
+                      var newPass = $('#password-reset-new-password').val();
+                      var confirmPass = $('#password-reset-confirm').val();
+                      var email = $('#password-reset-email').val();
+                      if (email.length === 0) {
+                          $('#password-reset-message').html('Please enter your email');
+                          return;
+                      }
+                      if (newPass !== confirmPass) {
+                          $('#password-reset-message').html('Passwords do not match');
+                          return;
+                      }
+                      AUFM.Util.api({
+                          url: 'password-reset',
+                          type: 'POST',
+                          data: {
+                              'email': email,
+                              'new_password': newPass,
+                              'reset_token': AUFM.UI.PasswordReset.token,
+                          },
+                          callback: function (data) {
+                              $('#password-reset-message').html('Password successfully rest');
+                          }
+                      });
+                    },
+                }]
+            },
+            open: function(token) {
+                var self = AUFM.UI.PasswordReset;
+                self.card_options.content = $('#password-reset-content').html();
+                $('.content-area').hide();
+                self.card = AUFM.UI.Cards.create(self.card_options);
+                self.token = token;
+                self.card.fadeIn();
+            },
+            card: undefined,
+            token: undefined,
         },
     },
     /**
