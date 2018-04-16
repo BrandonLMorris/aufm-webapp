@@ -1,9 +1,10 @@
+import bcrypt
 from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
 import bcrypt
 from flask import jsonify, request, render_template
-from flask_login import login_required, login_user
+from flask_login import login_required, login_user, current_user
 
 
 @app.route('/api/login', methods=['POST'])
@@ -14,16 +15,10 @@ def login():
     user = User.query.filter(User.email==form['email']).first()
     if user is None:
         return _error('Invalid login credentials', 400)
-    if bcrypt.checkpw(form['password'], user.password):
+    if bcrypt.checkpw(form['password'].encode('utf-8'), user.password):
         login_user(user)
         return jsonify({'status': 'Logged in successfully'})
     return _error('Invalid login credentials', 400)
-
-
-@app.route('/auth-test')
-@login_required
-def auth_test():
-    return jsonify({'status':'success'})
 
 
 @app.route('/api/user', methods=['POST'])
@@ -42,6 +37,21 @@ def create_new_user():
     db_session.add(new_user)
     db_session.commit()
     return jsonify(new_user.to_json())
+
+
+@app.route('/api/update-password', methods=['POST'])
+@login_required
+def update_password():
+    if not request.is_json:
+        return _error('Request must be JSON type', 400)
+    form = request.get_json()
+    if not bcrypt.checkpw(form['old_password'].encode('utf-8'), current_user.password):
+        return _error('Invalid credentials', 400)
+    p = bcrypt.hashpw(form['new_password'].encode('utf-8'), bcrypt.gensalt())
+    current_user.password = p
+    db_session.add(current_user)
+    db_session.commit()
+    return jsonify(current_user.to_json())
 
 
 @app.route('/api/part/<int:element_id>', methods=['GET', 'PUT', 'DELETE'])
