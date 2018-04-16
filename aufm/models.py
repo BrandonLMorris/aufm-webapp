@@ -11,6 +11,8 @@ class User(Base, UserMixin):
     last_name = Column('last_name', String(50))
     email = Column('email', String(128))
     password = Column('password', String(64))
+    password_reset = Column('password_reset', String(64))
+    password_reset_time = Column('password_reset_time', Integer)
 
     def __init__(self, first_name=None, last_name=None, email=None,
                  password=None, permissions=None):
@@ -18,6 +20,8 @@ class User(Base, UserMixin):
         self.last_name = last_name
         self.email = email
         self.password = password
+        self.password_reset = None
+
 
     def __repr__(self):
         return '<User {} {}>'.format(self.first_name, self.last_name)

@@ -1,10 +1,58 @@
 import bcrypt
+from time import time
 from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
 import bcrypt
 from flask import jsonify, request, render_template
 from flask_login import login_required, login_user, current_user
+from flask_mail import Message
+
+
+@app.route('/api/request-password-reset', methods=['POST'])
+def request_reset():
+    if not request.is_json:
+        return _error('Request must be JSON type', 400)
+    form = request.get_json()
+    user = User.query.filter(User.email==form['email']).first()
+    if user is None:
+        return _error('Account with specified email not found', 404)
+    now = int(time())
+    user.password_reset_time = now
+    user.password_reset = bcrypt.hashpw(str(now).encode('utf-8'), bcrypt.gensalt())
+    db_session.add(user)
+    db_session.commit()
+    # Email the user the reset token
+    msg = Message('AUFM Password Reset',
+                  sender='do.not.reply.aufm@gmail.com',
+                  recipients=[user.email])
+    msg.body = ('Click the following link to reset your password: {}/password-reset/{}'
+                .format(request.url_root, user.password_reset))
+    app.mail.send(msg)
+    return jsonify({'status': 'Reset message sent'})
+
+
+@app.route('/api/password-reset', methods=['POST'])
+def reset_password():
+    if not request.json:
+        return _error('Request must be JSON type', 400)
+    form = request.get_json()
+    user = User.query.filter(User.email==form['email']).first()
+    if user is None:
+        return _error('Account with specified email not found', 404)
+    now = int(time())
+    if now - user.password_reset_time > 60*60*24:
+        # Request is older than a day
+        return _error('Password reset has expired', 400)
+    if not form['rest_token'] == user.password_reset:
+        return _error('Reset token does not match', 400)
+    hashed = bcrypt.hashpw(form['new_password'].encode('utf-8'), bcrypt.gensalt())
+    user.password = hashed
+    user.password_reset = None
+    user.password_reset_time = None
+    db_session.add(user)
+    db_session.commit()
+    return jsonify({'status': 'Password successfully reset'})
 
 
 @app.route('/api/login', methods=['POST'])
