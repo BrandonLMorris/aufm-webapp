@@ -26,7 +26,7 @@ def request_reset():
     msg = Message('AUFM Password Reset',
                   sender='do.not.reply.aufm@gmail.com',
                   recipients=[user.email])
-    msg.body = ('Click the following link to reset your password: {}/password-reset/{}'
+    msg.body = ('Click the following link to reset your password: {}/#password-reset/{}'
                 .format(request.url_root, user.password_reset))
     app.mail.send(msg)
     return jsonify({'status': 'Reset message sent'})
@@ -44,7 +44,7 @@ def reset_password():
     if now - user.password_reset_time > 60*60*24:
         # Request is older than a day
         return _error('Password reset has expired', 400)
-    if not form['rest_token'] == user.password_reset:
+    if not form['reset_token'] == user.password_reset:
         return _error('Reset token does not match', 400)
     hashed = bcrypt.hashpw(form['new_password'].encode('utf-8'), bcrypt.gensalt())
     user.password = hashed
