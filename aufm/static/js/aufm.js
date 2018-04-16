@@ -204,7 +204,7 @@ var AUFM = {
                                     url: sublist.endpoint + itemId,
                                     callback: function(data) {
                                         subitems = data[sublist.key].map(function(e) {return sublist.schema(e);});
-                                        content.find('#collapsible-sublist').html(
+                                        content.find('[data-id="'+itemId+'"] .collapsible-sublist').html(
                                             '<ul class="collection">' +
                                             subitems.reduce(function(str, item) {
                                                 // FIXME I'M DYING
@@ -351,6 +351,9 @@ var AUFM = {
                     modal.find('.search-input label').attr("for", options.id + "_search").html("Search...");
                 }
                 Materialize.updateTextFields();
+                if (options.close) {
+                    modal.modal({complete: options.close});
+                }
                 modal.modal('open');
             },
             templates: {
@@ -604,8 +607,16 @@ var AUFM = {
                         });
                     },
                     actions: [
-                    
-                    ]
+                        {
+                            id: "done_adding_protocols",
+                            title: "Done",
+                            color: "green",
+                            click: function(modal, callback) {
+                                // Close the modal and reload the list to reflect changes
+                                modal.modal('close');
+                            }
+                        },
+                    ],
                 },
                 protocol_family_list_modal: {
                     id: "protocol_family_list_modal",
@@ -640,7 +651,18 @@ var AUFM = {
                                 });
                             },
                         });
-                    }
+                    },
+                    actions: [
+                        {
+                            id: "done_adding_protocols_from_families",
+                            title: "Done",
+                            color: "green",
+                            click: function(modal, callback) {
+                                // Close the modal and reload the list to reflect changes
+                                modal.modal('close');
+                            }
+                        },
+                    ],
                 }
             },
         },
@@ -895,7 +917,6 @@ var AUFM = {
                         id: "from_family",
                         click: function(e) {
                             AUFM.UI.Modals.open({
-                                // TODO: Reload part list when closing
                                 template: "protocol_family_list_modal",
                                 context: "add_from_family",
                                 action: function(family) {
@@ -914,6 +935,20 @@ var AUFM = {
                                                 });
                                             });
                                         }
+                                    });
+                                },
+                                close: function () {
+                                    // Reload the protocols list
+                                    var part_id = AUFM.UI.Protocols.part.elementID();
+                                    AUFM.Util.api({
+                                        url: "part/" + part_id + '/protocol',
+                                        callback: function(data) {
+                                            self.protocols = [];
+                                            data.protocols.forEach(function(p) {
+                                                self.protocols.push(new AUFM.Schema.Protocol(p));
+                                            });
+                                            AUFM.UI.Protocols.card.populate(self.protocols);
+                                        },
                                     });
                                 }
                             });
@@ -1040,8 +1075,23 @@ var AUFM = {
                                             callback: function(data) {
                                                 // TODO: Reload the sublist when done
                                             }
-                                        })
-                                    }
+                                        });
+                                    },
+                                    close: function () {
+                                        // Reload the sublist
+                                        AUFM.Util.api({
+                                            url: "protocol-family",
+                                            callback: function(data) {
+                                                if (data.length > 0) {
+                                                    self.families = [];
+                                                    data.forEach(function(f) {
+                                                        self.families.push(new AUFM.Schema.ProtocolFamily(f));
+                                                    });
+                                                }
+                                                AUFM.UI.ProtocolFamilies.card.populate(self.families);
+                                            }
+                                        });
+                                    },
                                 });
                             },
                         },
@@ -1063,6 +1113,20 @@ var AUFM = {
                     click: function(e) {
                         AUFM.UI.Modals.open({
                             template: "protocol_family_modal",
+                            close: function () {
+                              AUFM.Util.api({
+                                  url: "protocol-family",
+                                  callback: function(data) {
+                                      if (data.length > 0) {
+                                          self.families = [];
+                                          data.forEach(function(f) {
+                                              self.families.push(new AUFM.Schema.ProtocolFamily(f));
+                                          });
+                                      }
+                                      AUFM.UI.ProtocolFamilies.card.populate(self.families);
+                                  }
+                              });
+                            },
                         });
                     },
                 }],

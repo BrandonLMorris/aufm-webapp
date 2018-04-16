@@ -20,5 +20,3 @@ database.init_db()
 def remove_db_connection(exception=None):
     database.db_session.remove()
 
-def connect_db():
-    return None
