@@ -4,6 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+from . import models
+
 if 'AUFM_DB' in os.environ:
     connection = os.environ['AUFM_DB']
 else:
@@ -19,5 +21,4 @@ Base.query = db_session.query_property()
 
 def init_db():
     # Import models here
-    from .models import User, Protocol
     Base.metadata.create_all(bind=engine)

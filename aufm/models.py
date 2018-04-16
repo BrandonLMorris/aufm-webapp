@@ -1,16 +1,16 @@
-from sqlalchemy import Column, Integer, String, SmallInteger, ForeignKey
+from flask_login import UserMixin
+from sqlalchemy import Column, Integer, String, SmallInteger, ForeignKey, Boolean
 from aufm.database import Base
 
 
-class User(Base):
+class User(Base, UserMixin):
     """Relation that defines a user to the system"""
     __tablename__ = 'users'
-    user_id = Column('user_id', Integer, primary_key=True)
+    id = Column('user_id', Integer, primary_key=True)
     first_name = Column('first_name', String(50))
     last_name = Column('last_name', String(50))
     email = Column('email', String(128))
     password = Column('password', String(64))
-    permissions = Column('permissions', SmallInteger)
 
     def __init__(self, first_name=None, last_name=None, email=None,
                  password=None, permissions=None):
@@ -18,18 +18,16 @@ class User(Base):
         self.last_name = last_name
         self.email = email
         self.password = password
-        self.permissions = permissions
 
     def __repr__(self):
         return '<User {} {}>'.format(self.first_name, self.last_name)
 
     def to_json(self):
         return {
-            'user_id': self.user_id,
+            'id': self.id,
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
-            'permissions': self.permissions
         }
 
 
