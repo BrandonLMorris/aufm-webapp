@@ -69,24 +69,38 @@ def login():
     return _error('Invalid login credentials', 400)
 
 
-@app.route('/api/user', methods=['POST', 'GET'])
-def create_new_user():
+@app.route('/api/user', methods=['PUT', 'POST', 'GET'])
+def user_info():
     if request.method == 'GET':
         return jsonify(current_user.to_json())
     if not request.is_json:
         return _error('Request must be JSON type', 400)
     form = request.get_json()
     hashed = bcrypt.hashpw(form['password'].encode('utf-8'), bcrypt.gensalt())
-    user = User.query.filter(User.email == form['email']).all()
-    if user is not None:
-        return _error('An account with that email already exists', 400)
-    new_user = User(
-            first_name=form.get('first_name'), last_name=form.get('last_name'),
-            email=form['email'], password=hashed
-    )
-    db_session.add(new_user)
-    db_session.commit()
-    return jsonify(new_user.to_json())
+    user = User.query.filter(User.email == form['email'] or User.id == form['_id']).first()
+    print(user)
+    if request.method == 'PUT':
+        if user is not None:
+            return _error('An account with that email already exists', 400)
+        new_user = User(
+                first_name=form.get('first_name'), last_name=form.get('last_name'),
+                email=form['email'], password=hashed
+        )
+        db_session.add(new_user)
+        db_session.commit()
+        return jsonify(new_user.to_json())
+    elif request.method == 'POST':
+        if user is None:
+            return _error('Specified user not found', 400)
+        user.first_name = form.get('first_name')
+        user.last_name = form.get('last_name')
+        user.email = form.get('email')
+        if form.get('password') is not None:
+            user.password = hashed
+        db_session.add(user)
+        db_session.commit()
+        return jsonify(user.to_json())
+    return _error('Invalid request type.', 400)
 
 
 @app.route('/api/update-password', methods=['POST'])

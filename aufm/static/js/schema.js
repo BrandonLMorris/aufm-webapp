@@ -4,11 +4,11 @@
  */
 AUFM.Schema = {
     User: function(data) {
-        this._id = parseInt(data.id);
-        this._first_name = data.first_name;
-        this._last_name = data.last_name;
-        this._email = data.email;
-        this._permissions = parseInt(data.permissions);
+        this._id = parseInt(data.id) || 0;
+        this.first_name = data.first_name;
+        this.last_name = data.last_name;
+        this.email = data.email;
+        this.permissions = parseInt(data.permissions);
 
         this.id = function() {
             return this._id;
@@ -17,8 +17,22 @@ AUFM.Schema = {
         this.collection = function() {
             return {
                 id: this._id,
-                name: this._first_name + " " + this._last_name,
+                name: this.first_name + " " + this.last_name,
             };
+        };
+        
+        this.update = function(callback) {
+            var self = this;
+            AUFM.Util.api({
+                url: "user",
+                type: self._id == 0 ? "PUT" : "POST",
+                data: self,
+                callback: (data) => {
+                    if(!data.error)
+                        self._id = parseInt(data.id);
+                    callback(data);
+                },
+            });
         };
     },
     Building: function(data) {

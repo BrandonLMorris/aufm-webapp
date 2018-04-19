@@ -29,15 +29,27 @@ var AUFM = {
             $(".dropdown-button").dropdown();
             $('.modal').modal();
 
+            /**
+             * Setup navigation.
+             */
+            this.navigation();
+
+            AUFM.UI.Cards.initialize();
+        },
+        navigation: function() {
             $('#session_name').html(AUFM.session.collection().name);
             $('#profile_settings').click((e) => {
                 AUFM.UI.Modals.open({
-                    template: "user_edit_modal",
+                    template: "user_modal",
+                    context: "edit",
                     item: AUFM.session,
                 });
             });
-
-            AUFM.UI.Cards.initialize();
+            $('#add_new_user').click(e => {
+                AUFM.UI.Modals.open({
+                    template: "user_modal",
+                });
+            });
         },
         /*
          * Cards are dynamically created by passing in a set
@@ -645,21 +657,52 @@ var AUFM = {
                         },
                     ],
                 },
-                user_edit_modal: {
-                    id: "user_edit_modal",
-                    title: "Edit Profile",
-                    content: 'user_edit_modal_template',
+                user_modal: {
+                    id: "user_modal",
+                    title: {"edit": "Edit Profile Settings", "create": "Add New User"},
+                    content: 'user_modal_template',
                     width: 50,
                     create: function(modal, item) {
-                        modal.find('#user_first_name').val(item._first_name);
-                        modal.find('#user_last_name').val(item._last_name);
-                        modal.find('#user_email').val(item._email);
+                        if(item) {
+                            modal.find('#user_first_name').val(item.first_name);
+                            modal.find('#user_last_name').val(item.last_name);
+                            modal.find('#user_email').val(item.email);
+                        }
                     },
                     actions: [{
                         id: "save_profile",
-                        title: "Save Profile",
+                        title: {"edit": "Save Settings", "create": "Add New User"},
                         click: function(modal) {
-                            
+                            var first_name = modal.find('#user_first_name').val();
+                            var last_name = modal.find('#user_last_name').val();
+                            var email = modal.find('#user_email').val();
+                            var password = modal.find('#user_password').val();
+                            var confirm = modal.find('#user_password_confirm').val();
+                            var valid = true;
+                            modal.find('input').each(function() {
+                                var val = $(this).val();
+                                if(val.length == 0) {
+                                    $(this).addClass("invalid");
+                                    valid = false;
+                                }
+                            });
+                            if(!valid)
+                                return;
+                            if(password != confirm && confirm.length > 0) {
+                                modal.find('#user_password, #user_password_confirm').addClass("invalid");
+                                return;
+                            }
+                            var user = modal.item ? modal.item : new AUFM.Schema.User({});
+                            user.first_name = first_name;
+                            user.last_name = last_name;
+                            user.email = email;
+                            user.password = password;
+                            user.update((d) => {
+                                if(!d.error)
+                                    modal.modal('close');
+                                if(modal.item.email == AUFM.session.email)
+                                    $('#session_name').html(AUFM.session.collection().name);
+                            });
                         },
                     }]
                 },
