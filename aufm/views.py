@@ -69,8 +69,10 @@ def login():
     return _error('Invalid login credentials', 400)
 
 
-@app.route('/api/user', methods=['POST'])
+@app.route('/api/user', methods=['POST', 'GET'])
 def create_new_user():
+    if request.method == 'GET':
+        return jsonify(current_user.to_json())
     if not request.is_json:
         return _error('Request must be JSON type', 400)
     form = request.get_json()
@@ -400,6 +402,8 @@ def add_remove_protocol_family_association(family_id, protocol_id):
 
 @app.route('/')
 def index():
+    if current_user.is_authenticated == False:
+        return render_template('login.html')
     return render_template('aufm.html')
 
 
