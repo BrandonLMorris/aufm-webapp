@@ -35,7 +35,7 @@
                                             <label for="login_email" data-error="Incorrect email format.">Email</label>
                                         </div>
                                     </div>
-                                    <div class="row">
+                                    <div class="row" id="email_row">
                                         <div class="input-field col s12">
                                             <input type="password" id="login_password" class="validate">
                                             <label for="login_password" data-error="">Password</label>
@@ -45,9 +45,13 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card-action">
+                    <div class="card-action" id="login_buttons">
                         <a class="waves-effect waves-light btn blue darken-4" id="login_button">Login</a>
                         <a class="waves-effect waves-light btn blue darken-4" id="forgot_button">Forgot Password</a>
+                    </div>
+                    <div class="card-action" id="forgot_buttons" style="display: none;">
+                        <a class="waves-effect waves-light btn blue darken-4" id="forgot_submit">Submit</a>
+                        <a class="waves-effect waves-light btn blue darken-4" id="forgot_cancel">Cancel</a>
                     </div>
                 </div>
             </div>
