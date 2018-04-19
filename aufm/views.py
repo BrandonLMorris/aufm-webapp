@@ -4,8 +4,8 @@ from aufm import app
 from aufm.models import User, Protocol, Building, PartProtocol, Part, ProtocolFamily, ProtocolFamilyProtocol
 from aufm.database import db_session
 import bcrypt
-from flask import jsonify, request, render_template
-from flask_login import login_required, login_user, current_user
+from flask import jsonify, request, render_template, redirect
+from flask_login import login_required, login_user, logout_user, current_user
 from flask_mail import Message
 
 
@@ -398,6 +398,13 @@ def add_remove_protocol_family_association(family_id, protocol_id):
     db_session.delete(pfp)
     db_session.commit()
     return jsonify(to_delete)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect('/')
 
 
 @app.route('/')
