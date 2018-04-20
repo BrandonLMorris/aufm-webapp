@@ -11,8 +11,11 @@
     <!-- Javascript -->
     <script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
-    <script src="{{ url_for('static', filename='js/routie.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/libraries/routie.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/aufm.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/routing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/schema.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/util.js') }}"></script>
     <title>Auburn Facilities Management Portal</title>
     <base href="/">
   </head>
@@ -24,9 +27,9 @@
                 <a href="/" class="brand-logo">AUFM</a>
                 <ul id="nav-mobile" class="right hide-on-med-and-down">
                     <li class="active"><a href="/#buildings">Home</a></li>
-                    <li><a href="">Manage Users</a></li>
+                    <li><a href="#" id="add_new_user">Add New User</a></li>
                     <li><a href="/#protocol-families">Protocol Families</a></li>
-                    <li><a class="dropdown-button" href="#!" data-beloworigin="true" data-activates="settings_dropdown">Allen Kinzalow<i class="material-icons right">arrow_drop_down</i></a></li>
+                    <li><a class="dropdown-button" href="#!" data-beloworigin="true" data-activates="settings_dropdown"><span id="session_name"></span><i class="material-icons right">arrow_drop_down</i></a></li>
                 </ul>
             </div>
         </nav>
@@ -40,7 +43,8 @@
 
     <!-- Dropdown contents -->
     <ul id="settings_dropdown" class="dropdown-content">
-        <li><a href="#settings_modal" class="blue-text text-darken-4 modal-trigger">Settings</a></li>
+        <li><a href="#" id="profile_settings" class="blue-text text-darken-4">Settings</a></li>
+        <li><a href="/logout" class="blue-text text-darken-4">Logout</a></li>
     </ul>
 
     <!-- Re-Usable Scripts and templates -->
@@ -243,6 +247,42 @@
             </div>
         </div>
     </script> 
+
+    <script type="text/html" id="user_modal_template">
+        <div class="row">
+            <form class="col s12">
+                <div class="row">
+                    <div class="input-field col s6">
+                        <input id="user_first_name" type="text" class="validate">
+                        <label for="user_first_name">First Name</label>
+                    </div>
+                    <div class="input-field col s6">
+                        <input id="user_last_name" type="text" class="validate">
+                        <label for="user_last_name">Last Name</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="user_email" type="email" class="validate">
+                        <label for="user_email" data-error="Invalid email format.">Email</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input type="password" id="user_password" class="validate">
+                        <label for="user_password">Password</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input type="password" id="user_password_confirm" class="validate">
+                        <label for="user_password_confirm">Confirm Password</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </script>
+
   </body>
 
 </html>

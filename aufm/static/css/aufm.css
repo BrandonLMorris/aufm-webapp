@@ -1,3 +1,14 @@
+body.login {
+    background-color: #3c6198;
+}
+body.login .content-area {
+    padding-top: 8% !important;
+}
+body.login .card-action {
+    display: flex;
+    justify-content: center;
+}
+
 .content-area, .breadcrumb-row {
     display: flex;
     justify-content: center;

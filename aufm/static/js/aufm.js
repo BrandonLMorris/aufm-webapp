@@ -3,51 +3,21 @@ var AUFM = {
         DEFAULT_COLOR: "blue darken-4",
         DEFAULT_FONT_COLOR: "" // blank = default materialize
     },
+    session: {},
     setup: function() {
-        AUFM.Schema.setup();
-        AUFM.UI.initialize();
-        AUFM.Routing.setup();
-    },
-    /**
-     * Routing library implementation.
-     */
-    Routing: {
-        setup: function() {
-            routie({
-                'buildings': function() {
-                    AUFM.UI.Breadcrumb.clear();
-                    AUFM.UI.Buildings.open();
-                },
-                'parts/:building_id': function(building_id) {
-                    building_id = parseInt(building_id);
-                    AUFM.UI.Buildings.close();
-                    var building = AUFM.UI.Buildings.buildings.find(b => {return b.id() == building_id});
-                    building = building ? building : building_id;
-                    AUFM.UI.Parts.open(building);
-                    AUFM.UI.Breadcrumb.navigate("Parts");
-                },
-                'protocols/:part_id': function(element_id) {
-                    element_id = parseInt(element_id);
-                    AUFM.UI.Parts.close();
-                    var part = AUFM.UI.Parts.parts.find(p => {return p.elementID() == element_id});
-                    if(!part) {
-                        AUFM.Schema.Part.get(element_id, part => {
-                            AUFM.UI.Protocols.open(part);
-                        });
-                    } else
-                        AUFM.UI.Protocols.open(part);
-                },
-                'protocol-families': function() {
-                    AUFM.UI.ProtocolFamilies.open();
-                },
-                'password-reset/:reset_token': function(reset_token) {
-                    AUFM.UI.PasswordReset.open(reset_token);
-                },
-            });
-            // default
-            if(window.location.hash == "" || window.location.hash == "#!")
-                routie('buildings');
-        },
+        AUFM.Util.api({
+            url: "user",
+            callback: function(data) {
+                AUFM.session = new AUFM.Schema.User(data);
+                
+                /**
+                 * Setup AUFM
+                 */
+                AUFM.Schema.setup();
+                AUFM.UI.initialize();
+                AUFM.Routing.setup();
+            },
+        });
     },
     /*
      * An collection of UI specific utilities and managing the 
@@ -59,7 +29,27 @@ var AUFM = {
             $(".dropdown-button").dropdown();
             $('.modal').modal();
 
+            /**
+             * Setup navigation.
+             */
+            this.navigation();
+
             AUFM.UI.Cards.initialize();
+        },
+        navigation: function() {
+            $('#session_name').html(AUFM.session.collection().name);
+            $('#profile_settings').click((e) => {
+                AUFM.UI.Modals.open({
+                    template: "user_modal",
+                    context: "edit",
+                    item: AUFM.session,
+                });
+            });
+            $('#add_new_user').click(e => {
+                AUFM.UI.Modals.open({
+                    template: "user_modal",
+                });
+            });
         },
         /*
          * Cards are dynamically created by passing in a set
@@ -666,7 +656,56 @@ var AUFM = {
                             }
                         },
                     ],
-                }
+                },
+                user_modal: {
+                    id: "user_modal",
+                    title: {"edit": "Edit Profile Settings", "create": "Add New User"},
+                    content: 'user_modal_template',
+                    width: 50,
+                    create: function(modal, item) {
+                        if(item) {
+                            modal.find('#user_first_name').val(item.first_name);
+                            modal.find('#user_last_name').val(item.last_name);
+                            modal.find('#user_email').val(item.email);
+                        }
+                    },
+                    actions: [{
+                        id: "save_profile",
+                        title: {"edit": "Save Settings", "create": "Add New User"},
+                        click: function(modal) {
+                            var first_name = modal.find('#user_first_name').val();
+                            var last_name = modal.find('#user_last_name').val();
+                            var email = modal.find('#user_email').val();
+                            var password = modal.find('#user_password').val();
+                            var confirm = modal.find('#user_password_confirm').val();
+                            var valid = true;
+                            modal.find('input').each(function() {
+                                var val = $(this).val();
+                                if(val.length == 0) {
+                                    $(this).addClass("invalid");
+                                    valid = false;
+                                }
+                            });
+                            if(!valid)
+                                return;
+                            if(password != confirm && confirm.length > 0) {
+                                modal.find('#user_password, #user_password_confirm').addClass("invalid");
+                                return;
+                            }
+                            var user = modal.item ? modal.item : new AUFM.Schema.User({});
+                            user.first_name = first_name;
+                            user.last_name = last_name;
+                            user.email = email;
+                            user.password = password;
+                            user.update((d) => {
+                                if(!d.error)
+                                    modal.modal('close');
+                                if(modal.item.email == AUFM.session.email)
+                                    $('#session_name').html(AUFM.session.collection().name);
+                            });
+                        },
+                    }]
+                },
             },
         },
         Breadcrumb: {
@@ -1224,182 +1263,6 @@ var AUFM = {
             },
             card: undefined,
             token: undefined,
-        },
-    },
-    /**
-     * Javascript Class representations of the database schema,
-     *  with added functionality for interacting with the database.
-     */
-    Schema: {
-        User: function(data) {
-            this._user_id = parseInt(data.user_id);
-            this._first_name = data.first_name;
-            this._last_name = data.last_name;
-            this._email = data._email;
-            this._permissions = parseInt(data.permissions);
-
-            this.id = function() {
-                return this._user_id;
-            };
-
-            this.collection = function() {
-                return {
-                    id: this._user_id,
-                    name: this._first_name + " " + this._last_name,
-                };
-            };
-        },
-        Building: function(data) {
-            this._building_id = parseInt(data.building_id);
-            this._name = data.name;
-
-            this.id = function() {
-                return this._building_id;
-            };
-
-            this.collection = function() {
-                return {
-                    id: this._building_id,
-                    value: this._name,
-                };
-            };
-            this.remove = function(callback) {
-                var self = this;
-                AUFM.Util.api({
-                    url: "building/" + self.id(),
-                    type: "DELETE",
-                    callback: callback,
-                });
-            };
-        },
-        Part: function(data) {
-            this._part_id = parseInt(data.part_id);
-            this._element_id = parseInt(data.element_id);
-            this._part_name = data.part_name;
-            this._building_id = parseInt(data.building_id);
-
-            this.id = function() {
-                return this._part_id;
-            };
-
-            this.elementID = function() {
-                return this._element_id;
-            };
-
-            this.name = function() {
-                return this._part_name;
-            };
-
-            this.collection = function() {
-                return {
-                    id: this._part_id,
-                    value: (this._part_name === null ? "[No Name]" : this._part_name) + " (ID " +this._element_id + ")",
-                };
-            };
-            this.remove = function(callback) {
-                var self = this;
-                AUFM.Util.api({
-                    url: "part/" + self.elementID(),
-                    type: "DELETE",
-                    callback: callback,
-                });
-            };
-        },
-        Protocol: function(data) {
-            this._protocol_id = parseInt(data.protocol_id);
-            this._value = data.value;
-
-            this.id = function() {
-                return this._protocol_id;
-            };
-
-            this.collection = function() {
-                return {
-                    id: this._protocol_id,
-                    value: this._value,
-                };
-            };
-            this.remove = function(callback) {
-                var self = this;
-                AUFM.Util.api({
-                    url: "part/" + AUFM.UI.Protocols.part.elementID() + "/protocol/" + self.id(),
-                    type: "DELETE",
-                    callback: callback,
-                });
-            };
-        },
-        ProtocolFamily: function(data) {
-            this._family_id = parseInt(data.family_id);
-            this._family_name = data.family_name;
-
-            this.id = function() {
-                return this._family_id;
-            };
-
-            this.collection = function() {
-                return {
-                    id: this._family_id,
-                    value: this._family_name,
-                };
-            };
-            this.remove = function(callback) {
-                var self = this;
-                AUFM.Util.api({
-                  url: "protocol-family/" + self.id(),
-                  type: "DELETE",
-                  callback: callback,
-                });
-            };
-            this.removeProtocol = function(toRemove, callback) {
-                var self = this;
-                AUFM.Util.api({
-                    url: 'protocol-family/' + self.id() + '/protocol/' + toRemove.id(),
-                    type: "DELETE",
-                    callback: callback,
-                });
-            };
-        },
-        setup: function() {
-            this.Building.get = function(id, callback) {
-                AUFM.Util.api({
-                    url: "building/" + id,
-                    callback: function(data) {
-                        callback(new AUFM.Schema.Building(data));
-                    },
-                });
-            };
-            this.Part.get = function(element_id, callback) {
-                AUFM.Util.api({
-                    url: "part/" + element_id,
-                    callback: function(data) {
-                        callback(new AUFM.Schema.Part(data));
-                    },
-                });
-            };
-        },
-    },
-    Util: {
-        template: function(template, data) {
-            template = $.trim(template);
-            return template.replace(/%(\w*)%/g, function (m, key) {
-                return data.hasOwnProperty(key) ? data[key] : "";
-            });
-        },
-        api: function(params) {
-            $.ajax({
-                url: window.location.origin + "/api/" + params.url,
-                type: params.type ? params.type : "GET",
-                data: params.data ? JSON.stringify(params.data) : "",
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                success: params.callback,
-                error: function(jqXHR, text, error) {
-                    params.callback({
-                        error: text + " " + error,
-                    });
-                    console.log(text + " " + error);
-                },
-            });
         },
     },
 };
