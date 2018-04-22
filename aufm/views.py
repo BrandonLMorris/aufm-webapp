@@ -70,6 +70,7 @@ def login():
 
 
 @app.route('/api/user', methods=['PUT', 'POST', 'GET'])
+@login_required
 def user_info():
     if request.method == 'GET':
         return jsonify(current_user.to_json())
@@ -119,6 +120,7 @@ def update_password():
 
 
 @app.route('/api/part/<int:element_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
 def part_info(element_id):
     part = Part.query.filter(Part.element_id==element_id).first()
     if part is None:
@@ -149,6 +151,7 @@ def part_info(element_id):
 
 
 @app.route('/api/part', methods=['GET', 'POST'])
+@login_required
 def get_or_add_parts():
     if request.method == 'GET':
         parts = Part.query.all()
@@ -176,6 +179,7 @@ def get_or_add_parts():
 
 
 @app.route('/api/part/<int:element_id>/protocol', methods=['GET'])
+@login_required
 def get_all_protocols_for_part(element_id):
     part = Part.query.filter(Part.element_id==element_id).first()
     if part is None:
@@ -194,6 +198,7 @@ def get_all_protocols_for_part(element_id):
 
 @app.route('/api/part/<int:element_id>/protocol/<int:protocol_id>',
            methods=['POST', 'DELETE'])
+@login_required
 def connect_part_protocol(element_id, protocol_id):
     part = Part.query.filter(Part.element_id==element_id).first()
     if part is None:
@@ -221,6 +226,7 @@ def connect_part_protocol(element_id, protocol_id):
 
 
 @app.route('/api/protocol', methods=['GET', 'POST'])
+@login_required
 def get_all_protocols():
     if request.method == 'GET':
         protocols = Protocol.query.all()
@@ -238,6 +244,7 @@ def get_all_protocols():
 
 
 @app.route('/api/protocol/<int:protocol_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
 def get_protocol(protocol_id):
     p = Protocol.query.filter(Protocol.protocol_id==protocol_id).first()
     if p is None:
@@ -260,6 +267,7 @@ def get_protocol(protocol_id):
 
 
 @app.route('/api/building', methods=['GET', 'POST'])
+@login_required
 def get_all_buildings():
     if request.method == 'GET':
         buildings = Building.query.all()
@@ -278,6 +286,7 @@ def get_all_buildings():
 
 @app.route('/api/building/<int:building_id>', methods=['GET', 'PUT', 'DELETE'])
 @app.route('/api/building/<name>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
 def get_building_by_identifier(building_id=None, name=None):
     # Validate that the building exists
     if building_id is not None:
@@ -310,6 +319,7 @@ def get_building_by_identifier(building_id=None, name=None):
 
 @app.route('/api/building/<int:building_id>/part', methods=['GET'])
 @app.route('/api/building/<name>/part', methods=['GET'])
+@login_required
 def get_parts_in_building(building_id=None, name=None):
     if building_id is not None:
         # Lookup by id
@@ -328,6 +338,7 @@ def get_parts_in_building(building_id=None, name=None):
 
 
 @app.route('/api/protocol-family', methods=['GET', 'POST'])
+@login_required
 def get_all_protocol_families():
     if request.method == 'GET':
         families = ProtocolFamily.query.all()
@@ -347,6 +358,7 @@ def get_all_protocol_families():
 
 
 @app.route('/api/protocol-family/<int:family_id>', methods=['GET', 'PUT', 'DELETE'])
+@login_required
 def get_protocols_for_family(family_id):
     if request.method == 'GET':
         protocol_family = (ProtocolFamily.query
@@ -388,6 +400,7 @@ def get_protocols_for_family(family_id):
 
 @app.route('/api/protocol-family/<int:family_id>/protocol/<int:protocol_id>',
            methods=['POST', 'DELETE'])
+@login_required
 def add_remove_protocol_family_association(family_id, protocol_id):
     family = ProtocolFamily.query.filter(ProtocolFamily.family_id==family_id).first()
     if family is None:
